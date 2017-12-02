@@ -66,7 +66,7 @@ road_wheel_inner_half = road_wheel_half_generator(parameters.road_wheel_diameter
                                                   parameters.tread_guide_width,
                                                   parameters.tread_guide_height,
                                                   parameters.tread_guide_side_angle,
-                                                  parameters.tread_clearance,
+                                                  parameters.tread_guide_clearance,
                                                   parameters.small_bearing_od,
                                                   parameters.small_bearing_thickness,
                                                   parameters.small_bearing_shoulder_size,
@@ -78,7 +78,7 @@ road_wheel_outer_half = road_wheel_half_generator(parameters.road_wheel_diameter
                                                   parameters.tread_guide_width,
                                                   parameters.tread_guide_height,
                                                   parameters.tread_guide_side_angle,
-                                                  parameters.tread_clearance,
+                                                  parameters.tread_guide_clearance,
                                                   parameters.small_bearing_od,
                                                   parameters.small_bearing_thickness,
                                                   parameters.small_bearing_shoulder_size,
@@ -91,6 +91,8 @@ road_wheel = codecad.Assembly([road_wheel_inner_half.rotated_x(180),
 
 suspension = codecad.Assembly()
 suspension.add(road_wheel)
+suspension.add(road_wheel.translated_x(50))
+suspension.add(road_wheel.translated_x(100))
 
 if __name__ == "__main__":
-    codecad.commandline_render((road_wheel.shape() & half_space()).rotated_x(0), 0.1)
+    codecad.commandline_render(suspension, 0.1)

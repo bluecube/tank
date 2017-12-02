@@ -7,7 +7,7 @@
 # for 8 Wheels we should go for about 4 kg total weight
 
 # Printer settings:
-extrusion_width = 0.5
+extrusion_width = 0.42
 layer_height = 0.2
 thin_wall = 2 * extrusion_width
 thick_wall = 6 * extrusion_width
@@ -19,7 +19,7 @@ small_screw_head_height = 3
 small_bearing_id = 3
 small_bearing_od = 7
 small_bearing_thickness = 3
-small_bearing_shoulder_size = extrusion_width
+small_bearing_shoulder_size = 2 * extrusion_width
 
 # Tread parameters
 tread_thickness = 6
@@ -29,6 +29,7 @@ tread_guide_height = 5
 tread_guide_length = 7
 tread_guide_width = 12
 tread_guide_side_angle = 45
+tread_guide_clearance = 0.5
 tread_negative_bend_angle = 10
 tread_groove_depth = 1
 tread_clearance = 1
@@ -39,8 +40,8 @@ road_wheel_width = 30
 road_wheel_outer_inset = 11
 road_wheel_inner_inset = 1
 road_wheel_half_thickness = 12
-road_wheel_base_spacing = 61
 road_wheel_o_ring_minor_diameter = 2
+road_wheel_base_spacing = 61
 suspension_arm_dx = 30
 suspension_arm_dy = 20
 suspension_arm_wheel_clearance = 1
