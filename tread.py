@@ -37,9 +37,9 @@ def tread_segment_generator(thickness, length, width,
                                   2 * thickness + 2 * clearance).translated_y(-base_length / 2)
 
     base -= union([finger_space_front, finger_space_back,
-                  screw_head_cutout.translated_x(width / 2),
-                  screw_head_cutout.translated_x(-width / 2)
-                  ])
+                   screw_head_cutout.translated_x(width / 2),
+                   screw_head_cutout.translated_x(-width / 2)
+                   ])
     segment = base.extruded(thickness)
 
 
@@ -86,7 +86,7 @@ def tread_segment_generator(thickness, length, width,
                                                (None, length / 3, None)).translated_y(length / 6)
     segment -= grooves
 
-    return segment
+    return segment.rotated_z(90)
 
 
 tread_segment = tread_segment_generator(parameters.tread_thickness,
@@ -103,7 +103,10 @@ tread_segment = tread_segment_generator(parameters.tread_thickness,
                                         parameters.tread_clearance
                                         ).make_part("tread_segment", ["3d_print"])
 
-def tread_segment_row(n):
+def tread_row(n):
+    return codecad.Assembly([tread_segment \
+                                .translated_x((i - n/2 + 0.5) * parameters.tread_segment_length)
+                             for i in range(n)]).make_part("tread_assembly")
 
 if __name__ == "__main__":
-    codecad.commandline_render(tread_segment.rotated_x(45), 0.1)
+    codecad.commandline_render(tread_row(10), 0.1)
