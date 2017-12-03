@@ -100,7 +100,10 @@ tread_segment = tread_segment_generator(parameters.tread_thickness,
                                         parameters.tread_guide_side_angle,
                                         parameters.tread_negative_bend_angle,
                                         parameters.tread_groove_depth,
-                                        parameters.tread_clearance)
+                                        parameters.tread_clearance
+                                        ).make_part("tread_segment", ["3d_print"])
+
+def tread_segment_row(n):
 
 if __name__ == "__main__":
     codecad.commandline_render(tread_segment.rotated_x(45), 0.1)

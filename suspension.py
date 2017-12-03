@@ -103,7 +103,7 @@ road_wheel_inner_half = road_wheel_half_generator(parameters.road_wheel_diameter
                                                   parameters.small_bearing_shoulder_size,
                                                   parameters.road_wheel_o_ring_minor_diameter,
                                                   parameters.thin_wall
-                                                  ).make_part("road_wheel_inner_half")
+                                                  ).make_part("road_wheel_inner_half", ["3d_print"])
 road_wheel_outer_half = road_wheel_half_generator(parameters.road_wheel_diameter,
                                                   parameters.road_wheel_width,
                                                   parameters.road_wheel_outer_inset,
@@ -116,7 +116,7 @@ road_wheel_outer_half = road_wheel_half_generator(parameters.road_wheel_diameter
                                                   parameters.small_bearing_shoulder_size,
                                                   parameters.road_wheel_o_ring_minor_diameter,
                                                   parameters.thin_wall
-                                                  ).make_part("road_wheel_outer_half")
+                                                  ).make_part("road_wheel_outer_half", ["3d_print"])
 road_wheel = codecad.Assembly([road_wheel_inner_half.rotated_x(180),
                                road_wheel_outer_half
                                ]).make_part("road_wheel")
@@ -136,7 +136,7 @@ def make_wheel_suspension(right):
                                               parameters.suspension_arm_wheel_clearance + parameters.road_wheel_inner_inset,
                                               parameters.small_bearing_id,
                                               parameters.small_bearing_shoulder_size
-                                              ).make_part("{}_suspension_arm".format(name))
+                                              ).make_part("{}_suspension_arm".format(name), ["3d_print"])
 
     return codecad.Assembly([road_wheel.rotated_x(90),
                              suspension_arm.rotated_x(90) \
