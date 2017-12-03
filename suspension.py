@@ -124,7 +124,7 @@ road_wheel = codecad.Assembly([road_wheel_inner_half.rotated_x(180),
 def make_wheel_suspension(right):
     name = "right" if right else "left"
 
-    assert parameters.spring_lower_mount_diameter == parameter.small_screw_diameter
+    assert parameters.spring_lower_mount_diameter == parameters.small_screw_diameter
 
     suspension_arm = suspension_arm_generator(right,
                                               parameters.suspension_arm_dx,
