@@ -38,15 +38,17 @@ tread_clearance = 1
 road_wheel_diameter = 40
 road_wheel_width = 30
 road_wheel_outer_inset = 11
-road_wheel_inner_inset = 1
+road_wheel_inner_inset = 3
 road_wheel_half_thickness = 12
 road_wheel_o_ring_minor_diameter = 2
 road_wheel_base_spacing = 61
+road_wheel_arm_clearance = 1
 suspension_arm_dx = 30
 suspension_arm_dy = 20
 suspension_arm_wheel_clearance = 1
 suspension_arm_thickness = 7
-suspension_arm_height = 3 * thick_wall
+suspension_arm_height = small_screw_diameter + 2 * thick_wall
+suspension_spring_angle = 15
 
 
 drive_sprocket_tooth_count = 11

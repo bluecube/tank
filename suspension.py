@@ -52,13 +52,44 @@ def road_wheel_half_generator(diameter, width, bearing_inset,
     lightening_hole_count = math.floor(math.pi / math.asin((lightening_hole_diameter + wall_thickness) / lightening_hole_center_radius / 2))
 
     half -= cylinder(d=lightening_hole_diameter, h=float("inf")) \
-            .translated_x(lightening_hole_center_radius) \
-            .rotated((0, 0, 1), 360, n=lightening_hole_count)
+        .translated_x(lightening_hole_center_radius) \
+        .rotated((0, 0, 1), 360, n=lightening_hole_count)
 
     return half
 
-def suspension_arm_generator(dx, dy, thickness, height):
-    pass
+
+def suspension_arm_generator(right,
+                             dx, dy, thickness, height,
+                             axle_diameter,
+                             spring_angle, knob_height,
+                             bearing_id, bearing_shoulder_size):
+    # Position 0, 0 is the wheel center
+
+    if right:
+        dx = -dx
+
+    bend_distance = 12
+    bend_x = math.copysign(math.cos(math.radians(spring_angle)) * bend_distance, dx)
+    bend_y = math.sin(math.radians(spring_angle)) * bend_distance
+
+    arm = union([capsule(0, 0, -bend_x, bend_y, height),
+                 capsule(-bend_x, bend_y, -dx, dy, height)]) # TODO: rounding
+    arm = arm.extruded(thickness, symmetrical=False)
+
+    arm += polygon2d([(0, 0), (0, knob_height),
+                      (bearing_id / 2 + bearing_shoulder_size, knob_height),
+                      (height / 2, 0)]) \
+        .revolved() \
+        .rotated_x(90) \
+        .translated_z(thickness)
+
+    hole = cylinder(d=axle_diameter, h=float("inf"))
+
+    arm -= hole
+    arm -= hole.translated(-dx, dy, 0)
+
+    return arm
+
 
 road_wheel_inner_half = road_wheel_half_generator(parameters.road_wheel_diameter,
                                                   parameters.road_wheel_width,
@@ -71,7 +102,8 @@ road_wheel_inner_half = road_wheel_half_generator(parameters.road_wheel_diameter
                                                   parameters.small_bearing_thickness,
                                                   parameters.small_bearing_shoulder_size,
                                                   parameters.road_wheel_o_ring_minor_diameter,
-                                                  parameters.thin_wall).make_part("road_wheel_inner_half")
+                                                  parameters.thin_wall
+                                                  ).make_part("road_wheel_inner_half")
 road_wheel_outer_half = road_wheel_half_generator(parameters.road_wheel_diameter,
                                                   parameters.road_wheel_width,
                                                   parameters.road_wheel_outer_inset,
@@ -83,16 +115,39 @@ road_wheel_outer_half = road_wheel_half_generator(parameters.road_wheel_diameter
                                                   parameters.small_bearing_thickness,
                                                   parameters.small_bearing_shoulder_size,
                                                   parameters.road_wheel_o_ring_minor_diameter,
-                                                  parameters.thin_wall).make_part("road_wheel_outer_half")
-
+                                                  parameters.thin_wall
+                                                  ).make_part("road_wheel_outer_half")
 road_wheel = codecad.Assembly([road_wheel_inner_half.rotated_x(180),
                                road_wheel_outer_half
                                ]).make_part("road_wheel")
 
-suspension = codecad.Assembly()
-suspension.add(road_wheel)
-suspension.add(road_wheel.translated_x(50))
-suspension.add(road_wheel.translated_x(100))
+def make_wheel_suspension(right):
+    name = "right" if right else "left"
+
+    assert parameters.spring_lower_mount_diameter == parameter.small_screw_diameter
+
+    suspension_arm = suspension_arm_generator(right,
+                                              parameters.suspension_arm_dx,
+                                              parameters.suspension_arm_dy,
+                                              parameters.suspension_arm_thickness,
+                                              parameters.suspension_arm_height,
+                                              parameters.small_screw_diameter,
+                                              parameters.suspension_spring_angle,
+                                              parameters.suspension_arm_wheel_clearance + parameters.road_wheel_inner_inset,
+                                              parameters.small_bearing_id,
+                                              parameters.small_bearing_shoulder_size
+                                              ).make_part("{}_suspension_arm".format(name))
+
+    return codecad.Assembly([road_wheel.rotated_x(90),
+                             suspension_arm.rotated_x(90) \
+                             .translated_y(parameters.road_wheel_width / 2 +
+                                            parameters.road_wheel_arm_clearance +
+                                            parameters.suspension_arm_thickness)
+                             ]).make_part("{}_suspension".format(name))
+
+left_wheel_suspension = make_wheel_suspension(False)
+right_wheel_suspension = make_wheel_suspension(True)
+
 
 if __name__ == "__main__":
-    codecad.commandline_render(suspension, 0.1)
+    codecad.commandline_render(left_wheel_suspension.shape().rotated_z(-90) & half_space(), 0.1)
