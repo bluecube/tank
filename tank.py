@@ -18,4 +18,4 @@ all_suspension = codecad.Assembly([complete_side.translated_y(-80),
                                    complete_side.rotated_z(180).translated_y(80)])
 
 if __name__ == "__main__":
-    codecad.commandline_render(all_suspension, 0.1)
+    codecad.commandline_render(all_suspension, 0.2)

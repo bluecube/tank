@@ -7,7 +7,7 @@
 # for 8 Wheels we should go for about 4 kg total weight
 
 # Printer settings:
-extrusion_width = 0.42
+extrusion_width = 0.48
 layer_height = 0.2
 thin_wall = 2 * extrusion_width
 thick_wall = 6 * extrusion_width
@@ -16,16 +16,23 @@ thick_wall = 6 * extrusion_width
 small_screw_diameter = 3
 small_screw_head_diameter = 5.5
 small_screw_head_height = 3
+small_screw_long = 35
 small_bearing_id = 3
 small_bearing_od = 7
 small_bearing_thickness = 3
-small_bearing_shoulder_size = 2 * extrusion_width
+small_bearing_shoulder_size = 0.6
+
+spring_length = 60
+spring_diameter = 17
+spring_top_mount_diameter = 5
+spring_bottom_mount_diameter = 3
+spring_mount_thickness = 3
 
 # Tread parameters
-tread_thickness = 6
+tread_thickness = small_screw_diameter + 2 * 3 * extrusion_width
 tread_segment_length = 15
-tread_width = 41 # Chosen to fit 35mm long screws as pins
-tread_guide_height = 5
+tread_width = small_screw_long + 2 * small_screw_head_height
+tread_guide_height = 4
 tread_guide_length = 7
 tread_guide_width = 12
 tread_guide_side_angle = 45

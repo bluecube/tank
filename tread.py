@@ -56,10 +56,10 @@ def tread_segment_generator(thickness, length, width,
     segment -= side_rounding
 
     # Drill pin holes
-    segment -= cylinder(h=float("inf"), d=screw_diameter * 0.9) \
+    segment -= cylinder(h=float("inf"), d=screw_diameter * 0.92) \
                .rotated_y(90) \
                .translated_y(length / 2)
-    segment -= cylinder(h=float("inf"), d=screw_diameter * 1.05) \
+    segment -= cylinder(h=float("inf"), d=screw_diameter) \
                .rotated_y(90) \
                .translated_y(-length / 2)
 
