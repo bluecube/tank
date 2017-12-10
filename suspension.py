@@ -91,6 +91,16 @@ def suspension_arm_generator(right,
     return arm
 
 
+def spring_placeholder_generator(length, diameter, top_mount_diameter, bottom_mount_diameter,
+                                 mount_thickness):
+    mounts = capsule(0, 0, 0, length, 8) - \
+             circle(d=bottom_mount_diameter) - \
+             circle(d=top_mount_diameter).translated_y(length)
+    mounts = mounts.extruded(mount_thickness).rotated_x(90)
+    body = cylinder(d=diameter, h=length * 0.7).translated_z(length * 0.55)
+    return mounts + body
+
+
 road_wheel_inner_half = road_wheel_half_generator(parameters.road_wheel_diameter,
                                                   parameters.road_wheel_width,
                                                   parameters.road_wheel_inner_inset,
@@ -121,10 +131,18 @@ road_wheel = codecad.Assembly([road_wheel_inner_half.rotated_x(180),
                                road_wheel_outer_half
                                ]).make_part("road_wheel")
 
+spring_placeholder = spring_placeholder_generator(parameters.spring_length,
+                                                  parameters.spring_diameter,
+                                                  parameters.spring_top_mount_diameter,
+                                                  parameters.spring_bottom_mount_diameter,
+                                                  parameters.spring_mount_thickness
+                                                  ).make_part("60mm_shock_absorber", ["buy"])
+
 def make_wheel_suspension(right):
     name = "right" if right else "left"
+    direction = -1 if right else 1
 
-    assert parameters.spring_lower_mount_diameter == parameters.small_screw_diameter
+    assert parameters.spring_bottom_mount_diameter == parameters.small_screw_diameter
 
     suspension_arm = suspension_arm_generator(right,
                                               parameters.suspension_arm_dx,
@@ -140,14 +158,19 @@ def make_wheel_suspension(right):
 
     return codecad.Assembly([road_wheel.rotated_x(90),
                              suspension_arm.rotated_x(90) \
-                             .translated_y(parameters.road_wheel_width / 2 +
-                                            parameters.road_wheel_arm_clearance +
-                                            parameters.suspension_arm_thickness)
+                                 .translated_y(parameters.road_wheel_width / 2 +
+                                               parameters.road_wheel_arm_clearance +
+                                               parameters.suspension_arm_thickness),
+                             spring_placeholder \
+                                 .rotated_y(direction * parameters.suspension_spring_angle) \
+                                 .translated_y(parameters.road_wheel_width / 2 +
+                                               parameters.road_wheel_arm_clearance +
+                                               parameters.suspension_arm_thickness +
+                                               parameters.spring_mount_thickness / 2)
                              ]).make_part("{}_suspension".format(name))
 
 left_wheel_suspension = make_wheel_suspension(False)
 right_wheel_suspension = make_wheel_suspension(True)
 
-
 if __name__ == "__main__":
-    codecad.commandline_render(left_wheel_suspension.shape().rotated_z(-90) & half_space(), 0.1)
+    codecad.commandline_render(left_wheel_suspension, 0.1)
