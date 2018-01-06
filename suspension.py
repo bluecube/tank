@@ -142,7 +142,15 @@ def make_wheel_suspension(right):
     name = "right" if right else "left"
     direction = -1 if right else 1
 
+    arm_length = math.hypot(parameters.suspension_arm_dx, parameters.suspension_arm_dy)
+
     assert parameters.spring_bottom_mount_diameter == parameters.small_screw_diameter
+    assert arm_length + parameters.road_wheel_diameter / 2 + \
+           parameters.small_screw_head_diameter / 2 < parameters.road_wheel_base_spacing, \
+           "Two wheels on the same side will interfere during full travel"
+    assert (arm_length - parameters.suspension_arm_dx) * 2 + \
+           parameters.road_wheel_diameter < parameters.road_wheel_base_spacing, \
+           "Two wheels on the opposing side will interfere during full travel"
 
     suspension_arm = suspension_arm_generator(right,
                                               parameters.suspension_arm_dx,
