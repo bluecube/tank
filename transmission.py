@@ -7,7 +7,7 @@ import parameters
 
 # This is just a temporary polygon to help with drive sprocket layout
 drive_sprocket_working_polygon = regular_polygon2d(n=parameters.drive_sprocket_tooth_count,
-                                                   side_length=parameters.tread_segment_length)
+                                                   side_length=parameters.track_segment_length)
 
 print("drive sprocket working diameter", drive_sprocket_working_polygon.d)
 
