@@ -61,5 +61,4 @@ suspension_arm_thickness = 7
 suspension_arm_height = small_screw_diameter + 2 * thick_wall
 suspension_spring_angle = 15
 
-
-drive_sprocket_tooth_count = 11
+drive_sprocket_tooth_count = 8
