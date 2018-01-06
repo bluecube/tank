@@ -32,19 +32,6 @@ spring_compression_leverage = 4 / (4 * 3 / 8)
     # 1 / loaded sag ratio
     # number of road wheels
 
-# Tread parameters
-tread_thickness = small_screw_diameter + 2 * 3 * extrusion_width
-tread_segment_length = 15
-tread_width = small_screw_long + 2 * small_screw_head_height
-tread_guide_height = 4
-tread_guide_length = 7
-tread_guide_width = 12
-tread_guide_side_angle = 45
-tread_guide_clearance = 0.5
-tread_negative_bend_angle = 10
-tread_groove_depth = 1
-tread_clearance = 1
-
 # Suspension parameters
 road_wheel_diameter = 40
 road_wheel_width = 30

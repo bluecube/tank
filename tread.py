@@ -1,19 +1,36 @@
+import parameters
+
+nail_diameter = 1.5
+nail_length = 35 # Including head
+nail_head_diameter = 2
+nail_head_length = 1.5
+
+thickness = nail_diameter + 2 * 3 * parameters.extrusion_width
+segment_length = 15
+width = nail_length + nail_head_length # We want the segments to be symmetrical
+guide_height = 4
+guide_length = 7
+guide_width = 8
+guide_side_angle = 45
+guide_clearance = 0.5
+negative_bend_angle = 10
+groove_depth = 1
+clearance = 1
+
 import math
 
 import codecad
 from codecad.shapes import *
 
-import parameters
-
 def tread_segment_generator(thickness, length, width,
-                            screw_diameter, screw_head_height,
+                            pivot_diameter, pivot_head_height,
                             guide_height, guide_length, guide_width, guide_side_angle,
                             negative_bend_angle,
                             groove_depth,
                             clearance):
 
     base_length = length + thickness + 2 * clearance
-    space_for_fingers = width - 2 * screw_head_height - 4 * clearance
+    space_for_fingers = width - 2 * pivot_head_height - 4 * clearance
     finger_size_front = space_for_fingers / 2 / 3
     finger_size_back = space_for_fingers / 2 / 2
     finger_spacing = finger_size_front + finger_size_back + 2 * clearance
@@ -30,15 +47,15 @@ def tread_segment_generator(thickness, length, width,
                                                            (finger_spacing, None, None))
     finger_space_back = finger_space_back.translated(0, -base_length / 2)
 
-    # With just finger holes the screw head would collide with the back side of
+    # With just finger holes the pivot head would collide with the back side of
     # next segment. We need to add an extra cutout for that.
 
-    screw_head_cutout = rectangle(2 * finger_size_back,
+    pivot_head_cutout = rectangle(2 * finger_size_back,
                                   2 * thickness + 2 * clearance).translated_y(-base_length / 2)
 
     base -= union([finger_space_front, finger_space_back,
-                   screw_head_cutout.translated_x(width / 2),
-                   screw_head_cutout.translated_x(-width / 2)
+                   pivot_head_cutout.translated_x(width / 2),
+                   pivot_head_cutout.translated_x(-width / 2)
                    ])
     segment = base.extruded(thickness)
 
@@ -56,10 +73,10 @@ def tread_segment_generator(thickness, length, width,
     segment -= side_rounding
 
     # Drill pin holes
-    segment -= cylinder(h=float("inf"), d=screw_diameter * 0.92) \
+    segment -= cylinder(h=float("inf"), d=pivot_diameter * 0.92) \
                .rotated_y(90) \
                .translated_y(length / 2)
-    segment -= cylinder(h=float("inf"), d=screw_diameter) \
+    segment -= cylinder(h=float("inf"), d=pivot_diameter) \
                .rotated_y(90) \
                .translated_y(-length / 2)
 
@@ -89,23 +106,23 @@ def tread_segment_generator(thickness, length, width,
     return segment.rotated_z(90)
 
 
-tread_segment = tread_segment_generator(parameters.tread_thickness,
-                                        parameters.tread_segment_length,
-                                        parameters.tread_width,
-                                        parameters.small_screw_diameter,
-                                        parameters.small_screw_head_height,
-                                        parameters.tread_guide_height,
-                                        parameters.tread_guide_length,
-                                        parameters.tread_guide_width,
-                                        parameters.tread_guide_side_angle,
-                                        parameters.tread_negative_bend_angle,
-                                        parameters.tread_groove_depth,
-                                        parameters.tread_clearance
+tread_segment = tread_segment_generator(thickness,
+                                        segment_length,
+                                        width,
+                                        nail_diameter,
+                                        nail_head_length,
+                                        guide_height,
+                                        guide_length,
+                                        guide_width,
+                                        guide_side_angle,
+                                        negative_bend_angle,
+                                        groove_depth,
+                                        clearance
                                         ).make_part("tread_segment", ["3d_print"])
 
 def tread_row(n):
     return codecad.Assembly([tread_segment \
-                                .translated_x((i - n/2 + 0.5) * parameters.tread_segment_length)
+                                .translated_x((i - n/2 + 0.5) * segment_length)
                              for i in range(n)]).make_part("tread_assembly")
 
 if __name__ == "__main__":
