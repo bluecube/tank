@@ -1,3 +1,8 @@
+import math
+
+import codecad
+from codecad.shapes import *
+
 import parameters
 
 nail_diameter = 1.5
@@ -17,10 +22,6 @@ negative_bend_angle = 10
 groove_depth = 1
 clearance = 1
 
-import math
-
-import codecad
-from codecad.shapes import *
 
 def track_segment_generator(thickness, length, width,
                             pivot_diameter, pivot_head_height,
