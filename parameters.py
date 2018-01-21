@@ -1,7 +1,9 @@
 # Approximate scale taken from Merkava tank:
 # 7.60 m x 3.72 m x 2.66 m, 65e3 kg
+# 0.45 m ground clearance
 # 1/18 scaled:
 # 422 mm x 206 mm x 147 mm, 9.6 kg
+# 25mm ground clearance
 
 # Printer settings:
 extrusion_width = 0.48
