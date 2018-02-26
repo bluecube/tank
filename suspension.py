@@ -23,7 +23,7 @@ def trace(value, name=None):
         print(name + ":", value)
     return value
 
-wheel_count = 8 # Count of road wheels on both sides of the vehicle
+wheel_count = 10 # Count of road wheels on both sides of the vehicle
 
 spring_length = 62 # Center to center, relaxed
 spring_travel = 11
@@ -32,7 +32,8 @@ spring_top_mount_diameter = 5
 spring_bottom_mount_diameter = 3
 spring_top_mount_thickness = 3.8
 spring_bottom_mount_thickness = 6.5
-spring_full_compression_force = 4 # [kg]
+spring_preload_force = 0.95 # [kg]
+spring_full_compression_force = 4.5 # [kg]
 
 o_ring_minor_diameter = 2
 
