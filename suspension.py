@@ -97,19 +97,24 @@ def spring_length_at_angle(p, angle):
     return dist(polar2rect(angle + p[SPRING_ARM_ANGLE_OFFSET], p[SPRING_ARM_LENGTH]),
                 (p[SPRING_ANCHOR_X], p[SPRING_ANCHOR_Y]))
 
-def wheel_force_at_angle(p, angle):
-    """ Calculate upward force acting on the wheel at given suspension angle. """
-
-    pivot = (0, 0)
+def distance_from_spring_to_point(p, angle, point):
+    """ Calculate distance between spring axis and a point """
     spring_anchor_point = codecad.util.Vector(p[SPRING_ANCHOR_X], p[SPRING_ANCHOR_Y])
     spring_arm_point = codecad.util.Vector(*polar2rect(angle + p[SPRING_ARM_ANGLE_OFFSET],
                                                        p[SPRING_ARM_LENGTH]))
-    v1 = spring_anchor_point - spring_arm_point
+    v1 = (spring_anchor_point - spring_arm_point)
     length = abs(v1)
-    spring_torque_distance = (v1.y * spring_anchor_point.x - v1.x * spring_anchor_point.y) / length
+    v2 = codecad.util.Vector(v1.y, -v1.x) / length
+
+    return (spring_anchor_point - codecad.util.Vector(*point)).dot(v2)
+
+def wheel_force_at_angle(p, angle):
+    """ Calculate upward force acting on the wheel at given suspension angle. """
+
+    length = spring_length_at_angle(p, angle)
 
     spring_force = spring_preload_force + (spring_full_compression_force - spring_preload_force) * (spring_length - length) / spring_travel
-    arm_torque = spring_force * spring_torque_distance
+    arm_torque = spring_force * distance_from_spring_to_point(p, angle, (0, 0))
     wheel_torque_distance = math.cos(p[ARM_NEUTRAL_ANGLE]) * p[ARM_LENGTH]
     wheel_force = arm_torque / wheel_torque_distance
 
@@ -141,9 +146,14 @@ def suspension_height(p):
     height = max(wheel_height, spring_height)
     height += arm_thickness / 2
 
-    #height -= math.sin(p[ARM_NEUTRAL_ANGLE]) * p[ARM_LENGTH]
+    height -= math.sin(p[ARM_NEUTRAL_ANGLE]) * p[ARM_LENGTH]
 
     return height
+
+
+def distance_from_spring_to_wheel(p, angle):
+    """ Retun distance from spring body to wheel surface """
+    return distance_from_spring_to_point(p, angle, polar2rect(angle, p[ARM_LENGTH])) - (spring_diameter + wheel_diameter) / 2
 
 
 # The following functions must evaluate to zero
@@ -156,13 +166,15 @@ equalities = [lambda p: 1000 * (wheel_force_at_angle(p, p[ARM_NEUTRAL_ANGLE]) - 
 # The following functions must evaluate >= 0
 inequalities = [lambda p: p[ARM_LENGTH], # Arm, lengths must be positive
                 lambda p: p[SPRING_ARM_LENGTH], # -"-
+                lambda p: p[ARM_DOWN_ANGLE] + math.radians(70), # Lower than -90 degrees angle makes no sense
+                lambda p: math.pi / 2 - p[ARM_UP_ANGLE], # Higher than +90 degrees angle makes no sense
                 lambda p: p[ARM_NEUTRAL_ANGLE] - p[ARM_DOWN_ANGLE], # Arm must turn in one direction
                 lambda p: p[ARM_UP_ANGLE] - p[ARM_NEUTRAL_ANGLE], # -"-
                 lambda p: (math.sin(p[ARM_UP_ANGLE]) - math.sin(p[ARM_NEUTRAL_ANGLE])) * p[ARM_LENGTH] - up_travel, # Up travel distance is at least the selected one
                 lambda p: (math.sin(p[ARM_NEUTRAL_ANGLE]) - math.sin(p[ARM_DOWN_ANGLE])) * p[ARM_LENGTH] - down_travel, # Down travel distance is at least the selected one
                 lambda p: spring_length - spring_length_at_angle(p, p[ARM_NEUTRAL_ANGLE]), # Neutral length of the spring must be shorter than max length
                 lambda p: spring_length_at_angle(p, p[ARM_NEUTRAL_ANGLE]) - (spring_length - spring_travel), # Neutral length of the spring must be longer than min length
-                lambda p: p[ARM_DOWN_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET] + math.pi / 2, # Spring arm doesn't leave the X envelope in bottom position
+                #lambda p: p[ARM_DOWN_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET] + math.pi / 2, # Spring arm doesn't leave the X envelope in bottom position
                 lambda p: p[SPRING_ANCHOR_Y] - (lowest_point(p) + spring_diameter / 2), # Spring body won't interfere with tracks on the anchor point side at suspension up position
                 lambda p: math.sin(p[ARM_UP_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET]) * p[SPRING_ARM_LENGTH] -
                           (lowest_point(p) + spring_diameter / 2), # Spring body won't interfere with tracks on the arm side at suspension up position
@@ -177,7 +189,7 @@ def objective(p):
     #print(p)
     #for ineq in inequalities:
     #    print("    ", ineq(p))
-    ret = suspension_width(p) ** 2# + suspension_height(p) ** 2
+    ret = suspension_width(p) ** 2 + suspension_height(p) ** 2
     #print(ret)
     return ret
 
@@ -232,6 +244,7 @@ def plot_wheel_forces(params):
     plt.plot(heights, forces)
     plt.xlabel("suspension height")
     plt.ylabel("suspension force")
+    plt.grid()
     plt.show()
 
 def generate_suspension_arm(params):
@@ -327,7 +340,7 @@ def suspension_generator(params, state):
 
     asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees),
                             wheel.rotated_x(90).translated_x(params[ARM_LENGTH]).rotated_y(degrees),
-                            spring.rotated_y(spring_degrees).translated(params[SPRING_ANCHOR_X], 0, params[SPRING_ANCHOR_Y])])
+                            spring.rotated_y(spring_degrees).translated(params[SPRING_ANCHOR_X], 15, params[SPRING_ANCHOR_Y])])
 
     return asm
 
@@ -336,7 +349,9 @@ if __name__ == "__main__":
     width = suspension_width(params)
     height = suspension_height(params)
 
-    print("width, height: ", width, height)
+    print("width, height:", width, height)
+    print("up travel:", (math.sin(params[ARM_UP_ANGLE]) - math.sin(params[ARM_NEUTRAL_ANGLE])) * params[ARM_LENGTH])
+    print("down travel:", (math.sin(params[ARM_NEUTRAL_ANGLE]) - math.sin(params[ARM_DOWN_ANGLE])) * params[ARM_LENGTH])
 
     plot_wheel_forces(params)
 
