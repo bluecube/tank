@@ -50,8 +50,8 @@ arm_thickness = parameters.small_bearing_od + 2 * parameters.thick_wall
 
 wheel_spacing = 60 # Distance between wheels [mm]
 
-up_travel = 20 # [mm]
-down_travel = 10 # [mm]
+suspension_travel = 30 # [mm]
+suspension_sag = 0.3 # Ratio of travel from neutral position down
 
 # Calculating suspension geometry:
 
@@ -151,15 +151,11 @@ def suspension_height(p):
     return height
 
 
-def distance_from_spring_to_wheel(p, angle):
-    """ Retun distance from spring body to wheel surface """
-    return distance_from_spring_to_point(p, angle, polar2rect(angle, p[ARM_LENGTH])) - (spring_diameter + wheel_diameter) / 2
-
-
 # The following functions must evaluate to zero
 equalities = [lambda p: 1000 * (wheel_force_at_angle(p, p[ARM_NEUTRAL_ANGLE]) - parameters.design_weight / wheel_count), # Neutral position torque
               lambda p: dist((p[SPRING_ANCHOR_X], p[SPRING_ANCHOR_Y]), polar2rect(p[ARM_UP_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET], p[SPRING_ARM_LENGTH])) - (spring_length - spring_travel), # Up position spring length
               lambda p: dist((p[SPRING_ANCHOR_X], p[SPRING_ANCHOR_Y]), polar2rect(p[ARM_DOWN_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET], p[SPRING_ARM_LENGTH])) - spring_length, # Down position spring length
+              lambda p: 100 * ((math.sin(p[ARM_NEUTRAL_ANGLE]) - math.sin(p[ARM_DOWN_ANGLE])) / (math.sin(p[ARM_UP_ANGLE]) - math.sin(p[ARM_DOWN_ANGLE])) - suspension_sag), # Suspension sag ratio is as selected
 
               #lambda p: p[ARM_DOWN_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET] + math.pi / 2, # Spring arm is exactly vertical below pivot
               ]
@@ -170,8 +166,7 @@ inequalities = [lambda p: p[ARM_LENGTH], # Arm, lengths must be positive
                 lambda p: math.pi / 2 - p[ARM_UP_ANGLE], # Higher than +90 degrees angle makes no sense
                 lambda p: p[ARM_NEUTRAL_ANGLE] - p[ARM_DOWN_ANGLE], # Arm must turn in one direction
                 lambda p: p[ARM_UP_ANGLE] - p[ARM_NEUTRAL_ANGLE], # -"-
-                lambda p: (math.sin(p[ARM_UP_ANGLE]) - math.sin(p[ARM_NEUTRAL_ANGLE])) * p[ARM_LENGTH] - up_travel, # Up travel distance is at least the selected one
-                lambda p: (math.sin(p[ARM_NEUTRAL_ANGLE]) - math.sin(p[ARM_DOWN_ANGLE])) * p[ARM_LENGTH] - down_travel, # Down travel distance is at least the selected one
+                lambda p: (math.sin(p[ARM_UP_ANGLE]) - math.sin(p[ARM_DOWN_ANGLE])) * p[ARM_LENGTH] - suspension_travel, # suspension travel distance is at least the selected one
                 lambda p: spring_length - spring_length_at_angle(p, p[ARM_NEUTRAL_ANGLE]), # Neutral length of the spring must be shorter than max length
                 lambda p: spring_length_at_angle(p, p[ARM_NEUTRAL_ANGLE]) - (spring_length - spring_travel), # Neutral length of the spring must be longer than min length
                 #lambda p: p[ARM_DOWN_ANGLE] + p[SPRING_ARM_ANGLE_OFFSET] + math.pi / 2, # Spring arm doesn't leave the X envelope in bottom position
@@ -182,6 +177,10 @@ inequalities = [lambda p: p[ARM_LENGTH], # Arm, lengths must be positive
                 lambda p: p[SPRING_ANCHOR_X], # Correct orientation of the spring
                 lambda p: wheel_force_at_angle(p, p[ARM_UP_ANGLE]) - wheel_force_at_angle(p, p[ARM_NEUTRAL_ANGLE]), # Force increases through the travel 1
                 lambda p: wheel_force_at_angle(p, p[ARM_NEUTRAL_ANGLE]) - wheel_force_at_angle(p, p[ARM_DOWN_ANGLE]), # Force increases through the travel 2
+
+                lambda p: distance_from_spring_to_point(p, p[ARM_UP_ANGLE], (0, 0)) - (spring_diameter / 2 + arm_thickness) / 2,
+                lambda p: distance_from_spring_to_point(p, p[ARM_NEUTRAL_ANGLE], (0, 0)) - (spring_diameter / 2 + arm_thickness) / 2,
+                lambda p: distance_from_spring_to_point(p, p[ARM_DOWN_ANGLE], (0, 0)) - (spring_diameter / 2 + arm_thickness) / 2,
                 ]
 
 def objective(p):
@@ -189,13 +188,13 @@ def objective(p):
     #print(p)
     #for ineq in inequalities:
     #    print("    ", ineq(p))
-    ret = suspension_width(p) ** 2 + suspension_height(p) ** 2
+    ret = suspension_width(p) ** 2 + 0.25 * suspension_height(p) ** 2
     #print(ret)
     return ret
 
 initial = [0] * 8
 initial[ARM_LENGTH] = wheel_diameter
-initial[SPRING_ARM_LENGTH] = wheel_diameter * parameters.design_weight * down_travel / (wheel_count * spring_full_compression_force * (down_travel + up_travel))
+initial[SPRING_ARM_LENGTH] = wheel_diameter * parameters.design_weight * suspension_sag / (wheel_count * spring_full_compression_force)
 initial[SPRING_ARM_ANGLE_OFFSET] = -math.pi / 4
 initial[ARM_UP_ANGLE] = math.pi / 6
 initial[ARM_DOWN_ANGLE] = -math.pi / 4
@@ -222,15 +221,15 @@ with warnings.catch_warnings():
     result = scipy.optimize.minimize(objective,
                                      initial,
                                      method="COBYLA",
-                                     options={"maxiter": 50000},
+                                     options={"maxiter": 50000,
+                                              "rhobeg": 1,
+                                              "catol": 1},
                                      constraints=[{"type": "ineq", "fun": fun} for fun in equalities] +
-                                                 [{"type": "ineq", "fun": lambda p: -fun(p)} for fun in equalities] +
+                                                 [{"type": "ineq", "fun": lambda p, fun=fun: -fun(p)} for fun in equalities] +
                                                  [{"type": "ineq", "fun": fun} for fun in inequalities])
     print(result)
 params = result.x
 print("done")
-for constraint in all_constraints:
-    print(constraint["type"], constraint["fun"](params))
 
 def plot_wheel_forces(params):
     import matplotlib.pyplot as plt
