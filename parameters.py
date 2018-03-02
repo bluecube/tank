@@ -15,14 +15,14 @@ thick_wall = 3 * extrusion_width
 small_screw_diameter = 3
 small_screw_head_diameter = 5.5
 small_screw_head_height = 3
-small_screw_long = 35
 small_screw_nut_diameter = 6 # Outer diameter of the hex
 small_screw_nut_height = 4 # Lock nut
+small_screw_nut_s = 5.5 # Nut size across the flats
 
 small_bearing_id = 3
 small_bearing_od = 7
 small_bearing_thickness = 3
-small_bearing_shoulder_size = 0.5
+small_bearing_shoulder_size = 2 * extrusion_width
 
 design_weight = 4 # [kg]
 

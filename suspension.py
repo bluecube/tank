@@ -38,14 +38,16 @@ spring_bottom_mount_thickness = 6.5
 spring_preload_force = 0.95 # [kg]
 spring_full_compression_force = 4.5 # [kg]
 
-o_ring_minor_diameter = 2
+arm_clearance = 1
+clearance = 2
 
+o_ring_minor_diameter = 2
 wheel_diameter = 30
-wheel_width = 30 # Total width of the wheel pair
-half_wheel_width = (wheel_width - track.guide_width) / 2 - track.clearance
+wheel_width = 30 + parameters.small_screw_head_height # Total width of the wheel pair
+bogie_width = 8
+half_wheel_width = (wheel_width - bogie_width) / 2 - arm_clearance
 p("half_wheel_width")
 
-clearance = 2
 arm_thickness = parameters.small_bearing_od + 2 * parameters.thick_wall
 
 wheel_spacing = 60 # Distance between wheels [mm]
@@ -239,7 +241,6 @@ def plot_wheel_forces(params):
     heights = (numpy.sin(angles) - numpy.sin(params[ARM_NEUTRAL_ANGLE])) * params[ARM_LENGTH]
     forces = numpy.vectorize(lambda angle: wheel_force_at_angle(params, angle))(angles)
 
-    print("plotting")
     plt.plot(heights, forces)
     plt.xlabel("suspension height")
     plt.ylabel("suspension force")
@@ -261,28 +262,22 @@ def generate_suspension_arm(params):
     return arm
 
 def road_wheel_generator(diameter, width, axle_diameter,
-                         hub_width, hub_diameter,
-                         o_ring_minor_diameter, wall_thickness,
+                         shoulder_height, shoulder_width,
+                         o_ring_minor_diameter, wall_thickness, hole_blinding_layer_height,
                          screw_hole_diameter, screw_hole_depth,
                          hex_hole):
 
     o_ring_protrusion = o_ring_minor_diameter / 2
     radius = diameter / 2 - o_ring_protrusion
     axle_radius = axle_diameter / 2
-    hub_radius = hub_diameter / 2
 
-    rim_thickness = o_ring_minor_diameter / 2 + wall_thickness
-
-    #wheel = polygon2d([(axle_radius, 0),
-    #                  (axle_radius, hub_width),
-    #                  (hub_radius, hub_width),
-    #                  (hub_radius + hub_width - width / 2, width / 2),
-    #                  (radius - rim_thickness - width / 2, width / 2),
-    #                  (radius - rim_thickness, width),
-    #                  (radius, width),
-    #                  (radius, 0),
-    #                  ])
-    wheel = rectangle(radius - axle_radius, hub_width).translated_x(axle_radius + (radius - axle_radius) / 2)
+    wheel = polygon2d([(axle_radius, 0),
+                       (radius, 0),
+                       (radius, width),
+                       (axle_radius + shoulder_width + shoulder_height, width),
+                       (axle_radius + shoulder_width, width + shoulder_height),
+                       (axle_radius, width + shoulder_height),
+                       ])
 
     o_ring_count = 2
     o_ring_spacing = (width - o_ring_count * o_ring_minor_diameter) / (1 + o_ring_count)
@@ -292,12 +287,26 @@ def road_wheel_generator(diameter, width, axle_diameter,
 
     wheel = wheel.revolved().rotated_x(90)
 
+    if hole_blinding_layer_height:
+        wheel += cylinder(r=radius - o_ring_protrusion,
+                          h=hole_blinding_layer_height,
+                          symmetrical=False).translated_z(screw_hole_depth)
+
+    if hex_hole:
+        wheel -= regular_polygon2d(n=6, d=screw_hole_diameter).extruded(2 * screw_hole_depth)
+    else:
+        wheel -= cylinder(d=screw_hole_diameter, h=2 * screw_hole_depth)
+
     lightening_hole_count = 5
-    lightening_hole_center_radius = radius / 2
+    lightening_hole_inner_radius = max(axle_radius + shoulder_height + shoulder_width,
+                                       axle_radius + wall_thickness,
+                                       screw_hole_diameter / 2 + wall_thickness)
+    lightening_hole_outer_radius = radius - o_ring_protrusion - wall_thickness
+    lightening_hole_center_radius = (lightening_hole_inner_radius + lightening_hole_outer_radius) / 2
     lightening_hole_polygon = regular_polygon2d(n=lightening_hole_count,
                                                 r=lightening_hole_center_radius)
-    lightening_hole_diameter = min(radius - rim_thickness - hub_radius - 2 * wall_thickness,
-                                   lightening_hole_polygon.side_length - 2 * wall_thickness)
+    lightening_hole_diameter = min(lightening_hole_outer_radius - lightening_hole_inner_radius,
+                                   lightening_hole_polygon.side_length - wall_thickness)
 
     wheel -= cylinder(d=lightening_hole_diameter, h=float("inf")) \
         .translated_x(lightening_hole_center_radius) \
@@ -313,17 +322,30 @@ def spring_placeholder_generator(length): # Redo the geometry
     body = cylinder(d=spring_diameter, h=length * 0.7).translated_z(length * 0.55)
     return mounts + body
 
+
 arm = generate_suspension_arm(params).make_part("suspension_arm", ["3d_print"])
-wheel = road_wheel_generator(wheel_diameter,
-                             wheel_width,
-                             parameters.small_bearing_id,
-                             wheel_width * 0.75,
-                             parameters.small_screw_nut_diameter + parameters.thin_wall,
-                             o_ring_minor_diameter,
-                             parameters.thin_wall,
-                             parameters.small_screw_nut_diameter,
-                             parameters.small_screw_nut_height,
-                             True).make_part("inner_road_wheel", ["3d_print"])
+inner_wheel = road_wheel_generator(wheel_diameter,
+                                   half_wheel_width,
+                                   parameters.small_bearing_id,
+                                   arm_clearance,
+                                   parameters.small_bearing_shoulder_size,
+                                   o_ring_minor_diameter,
+                                   parameters.thick_wall,
+                                   parameters.layer_height,
+                                   parameters.small_screw_nut_s * 2 / math.sqrt(3),
+                                   parameters.small_screw_nut_height + parameters.small_screw_diameter / 6,
+                                   True).make_part("inner_road_wheel", ["3d_print"])
+outer_wheel = road_wheel_generator(wheel_diameter,
+                                   half_wheel_width,
+                                   parameters.small_bearing_id,
+                                   arm_clearance,
+                                   parameters.small_bearing_shoulder_size,
+                                   o_ring_minor_diameter,
+                                   parameters.thick_wall,
+                                   parameters.layer_height,
+                                   parameters.small_screw_head_diameter,
+                                   parameters.small_screw_head_height,
+                                   False).make_part("outer_road_wheel", ["3d_print"])
 
 def suspension_generator(params, state):
     arm_point = polar2rect(params[state] + params[SPRING_ARM_ANGLE_OFFSET], params[SPRING_ARM_LENGTH])
