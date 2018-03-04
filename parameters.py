@@ -9,7 +9,7 @@
 extrusion_width = 0.48
 layer_height = 0.2
 thin_wall = 2 * extrusion_width
-thick_wall = 3 * extrusion_width
+thick_wall = 4 * extrusion_width
 
 # Dimensions for vitamins:
 small_screw_diameter = 3
