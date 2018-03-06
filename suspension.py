@@ -46,7 +46,7 @@ clearance = 2
 bogie_spacing = 110 # [mm] distance between bogies
 bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 wheel_diameter = 30
-wheel_width = 30 + parameters.small_screw_head_height # Total width of the wheel pair
+wheel_width = 30 # Total width of the wheel pair
 arm_width = 8
 bogie_width = arm_width
 
@@ -55,7 +55,9 @@ suspension_sag = 0.3 # Ratio of travel from neutral position down
 
 half_wheel_width = (wheel_width - bogie_width) / 2 - arm_clearance
 
-assert wheel_width - 2 * half_wheel_width >= track.guide_width + track.clearance
+assert wheel_width - 2 * half_wheel_width >= track.guide_width + track.clearance, \
+    "The track guide has enough space between the wheel halves"
+assert wheel_width <= track.width
 
 arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
 
