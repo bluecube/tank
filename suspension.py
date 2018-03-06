@@ -339,10 +339,9 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .offset((bearing_diameter + thin_wall + thick_wall) / 2) \
         .extruded(upper_thickness) \
         .rotated_x(90) \
-        .translated_z((bearing_diameter + thin_wall + thick_wall) / 2)
+        .translated_z((thick_wall - thin_wall) / 2)
 
-    wheel_axis_z = bearing_diameter / 2 + thin_wall
-    pivot_z += wheel_axis_z
+    bottom_z = -bearing_diameter / 2 - thin_wall
 
     nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
     pivot_end_diameter = max(shoulder_screw_diameter2, nut_outer_diameter) + 2 * thick_wall
@@ -386,14 +385,14 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
     # Wheel cutouts
     for x in [-1, 1]:
         x = x * wheel_spacing / 2
-        bogie -= cylinder(d=bearing_diameter - 2 * bearing_shoulder_size, h=lower_thickness).rotated_x(90).translated(x, 0, wheel_axis_z)
+        bogie -= cylinder(d=bearing_diameter - 2 * bearing_shoulder_size, h=lower_thickness).rotated_x(90).translated_x(x)
         for y in [-1, 1]:
-            bogie -= cylinder(d=wheel_cutout_diameter, h=upper_thickness - lower_thickness + 1e-2).rotated_x(90).translated(x, y * upper_thickness / 2, wheel_axis_z)
-            bogie -= cylinder(d=bearing_diameter, h=2 * bearing_thickness).rotated_x(90).translated(x, y * lower_thickness / 2, wheel_axis_z)
+            bogie -= cylinder(d=wheel_cutout_diameter, h=upper_thickness - lower_thickness + 1e-2).rotated_x(90).translated(x, y * upper_thickness / 2, 0)
+            bogie -= cylinder(d=bearing_diameter, h=2 * bearing_thickness).rotated_x(90).translated(x, y * lower_thickness / 2, 0)
 
     # bottom lightening angles
     for y in [-1, 1]:
-        bogie -= half_space().rotated_x(90 + y * (90 + overhang_angle)).translated_y(-y * lower_thickness / 2)
+        bogie -= half_space().rotated_x(90 + y * (90 + overhang_angle)).translated(0, -y * lower_thickness / 2, bottom_z)
 
     return bogie
 
@@ -407,28 +406,30 @@ def spring_placeholder_generator(length): # Redo the geometry
 
 
 arm = generate_suspension_arm(params).make_part("suspension_arm", ["3d_print"])
-inner_wheel = road_wheel_generator(wheel_diameter,
-                                   half_wheel_width,
-                                   parameters.small_bearing_id,
-                                   arm_clearance,
-                                   parameters.small_bearing_shoulder_size,
-                                   o_ring_minor_diameter,
-                                   4 * parameters.layer_height,
-                                   parameters.layer_height,
-                                   parameters.small_screw_nut_s,
-                                   parameters.small_screw_nut_height + parameters.small_screw_diameter / 6,
-                                   True).make_part("inner_road_wheel", ["3d_print"])
-outer_wheel = road_wheel_generator(wheel_diameter,
-                                   half_wheel_width,
-                                   parameters.small_bearing_id,
-                                   arm_clearance,
-                                   parameters.small_bearing_shoulder_size,
-                                   o_ring_minor_diameter,
-                                   4 * parameters.layer_height,
-                                   parameters.layer_height,
-                                   parameters.small_screw_head_diameter,
-                                   parameters.small_screw_head_height,
-                                   False).make_part("outer_road_wheel", ["3d_print"])
+inner_road_wheel = road_wheel_generator(wheel_diameter,
+                                        half_wheel_width,
+                                        parameters.small_bearing_id,
+                                        arm_clearance,
+                                        parameters.small_bearing_shoulder_size,
+                                        o_ring_minor_diameter,
+                                        4 * parameters.layer_height,
+                                        parameters.layer_height,
+                                        parameters.small_screw_nut_s,
+                                        parameters.small_screw_nut_height + parameters.small_screw_diameter / 6,
+                                        True
+                                        ).make_part("inner_road_wheel", ["3d_print"])
+outer_road_wheel = road_wheel_generator(wheel_diameter,
+                                        half_wheel_width,
+                                        parameters.small_bearing_id,
+                                        arm_clearance,
+                                        parameters.small_bearing_shoulder_size,
+                                        o_ring_minor_diameter,
+                                        4 * parameters.layer_height,
+                                        parameters.layer_height,
+                                        parameters.small_screw_head_diameter,
+                                        parameters.small_screw_head_height,
+                                        False
+                                        ).make_part("outer_road_wheel", ["3d_print"])
 bogie = bogie_generator(bogie_wheel_spacing,
                         bogie_width, parameters.shoulder_screw_length + parameters.shoulder_screw_head_height,
                         parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
@@ -448,6 +449,21 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         parameters.shoulder_screw_nut_s,
                         parameters.overhang_angle,
                         ).make_part("bogie", ["3d_print"])
+
+bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
+                                   inner_road_wheel.rotated_x(90).translated(bogie_wheel_spacing / 2,
+                                                                             wheel_width / 2,
+                                                                             wheel_diameter / 2),
+                                   inner_road_wheel.rotated_x(90).translated(-bogie_wheel_spacing / 2,
+                                                                             wheel_width / 2,
+                                                                             wheel_diameter / 2),
+                                   outer_road_wheel.rotated_x(-90).translated(bogie_wheel_spacing / 2,
+                                                                              -wheel_width / 2,
+                                                                              wheel_diameter / 2),
+                                   outer_road_wheel.rotated_x(-90).translated(-bogie_wheel_spacing / 2,
+                                                                              -wheel_width / 2,
+                                                                              wheel_diameter / 2)]
+                                 ).make_part("bogie_assembly")
 
 
 def suspension_generator(params, state):
@@ -470,9 +486,9 @@ def suspension_generator(params, state):
 
 
 if __name__ == "__main__":
-    codecad.commandline_render(bogie.shape(), 0.1)
+    codecad.commandline_render(bogie_assembly.rotated_z(-0), 0.1)
     sys.exit()
-if __name__ == "__main__":
+
     print(params)
     width = suspension_width(params)
     height = suspension_height(params)
@@ -492,141 +508,3 @@ if __name__ == "__main__":
                           s3.translated_x(width)])
 
     codecad.commandline_render(o, 0.1)
-
-sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inner_road_wheel = road_wheel_generator(wheel_diameter,
-                                        wheel_width,
-                                        parameters.small_bearing_id,
-                                        wheel_width * 0.75,
-                                        parameters.small_screw_nut_diameter + parameters.thin_wall,
-                                        o_ring_minor_diameter,
-                                        parameters.thin_wall,
-                                        parameters.small_screw_nut_diameter,
-                                        parameters.small_screw_nut_height,
-                                        True,
-                                        ).make_part("inner_road_wheel", ["3d_print"])
-outer_road_wheel = road_wheel_generator(wheel_diameter,
-                                        wheel_width,
-                                        parameters.small_bearing_id,
-                                        wheel_width * 0.75,
-                                        parameters.small_screw_nut_diameter + parameters.thin_wall,
-                                        o_ring_minor_diameter,
-                                        parameters.thin_wall,
-                                        parameters.small_screw_head_diameter,
-                                        parameters.small_screw_head_height,
-                                        False,
-                                        ).make_part("outer_road_wheel", ["3d_print"])
-
-left_suspension_arm = suspension_arm_generator(False,
-                                               track.guide_width,
-                                               arm_thickness,
-                                               parameters.small_bearing_od,
-                                               parameters.small_bearing_thickness,
-                                               parameters.small_bearing_shoulder_size,
-                                               arm_pivot_dx, arm_pivot_dy, 5,
-                                               spring_bottom_dx, spring_bottom_dy, spring_bottom_mount_diameter,
-                                               parameters.layer_height)
-
-
-if __name__ == "__main__":
-    codecad.commandline_render(left_suspension_arm.shape().rotated_x(45), 0.1)
-
-sys.exit()
-
-spring_placeholder = spring_placeholder_generator(parameters.spring_length,
-                                                  parameters.spring_diameter,
-                                                  parameters.spring_top_mount_diameter,
-                                                  parameters.spring_bottom_mount_diameter,
-                                                  parameters.spring_mount_thickness
-                                                  ).make_part("60mm_shock_absorber", ["buy"])
-
-def make_wheel_suspension(right):
-    name = "right" if right else "left"
-    direction = -1 if right else 1
-
-    arm_length = math.hypot(parameters.suspension_arm_dx, parameters.suspension_arm_dy)
-
-    assert parameters.spring_bottom_mount_diameter == parameters.small_screw_diameter
-    assert arm_length + parameters.road_wheel_diameter / 2 + \
-           parameters.small_screw_head_diameter / 2 < parameters.road_wheel_base_spacing, \
-           "Two wheels on the same side will interfere during full travel"
-    assert (arm_length - parameters.suspension_arm_dx) * 2 + \
-           parameters.road_wheel_diameter < parameters.road_wheel_base_spacing, \
-           "Two wheels on the opposing side will interfere during full travel"
-
-    suspension_arm = suspension_arm_generator(right,
-                                              parameters.suspension_arm_dx,
-                                              parameters.suspension_arm_dy,
-                                              parameters.suspension_arm_thickness,
-                                              parameters.suspension_arm_height,
-                                              parameters.small_screw_diameter,
-                                              parameters.suspension_spring_angle,
-                                              parameters.suspension_arm_wheel_clearance + parameters.road_wheel_inner_inset,
-                                              parameters.small_bearing_id,
-                                              parameters.small_bearing_shoulder_size
-                                              ).make_part("{}_suspension_arm".format(name), ["3d_print"])
-
-    return codecad.Assembly([road_wheel.rotated_x(90),
-                             suspension_arm.rotated_x(90) \
-                                 .translated_y(parameters.road_wheel_width / 2 +
-                                               parameters.road_wheel_arm_clearance +
-                                               parameters.suspension_arm_thickness),
-                             spring_placeholder \
-                                 .rotated_y(direction * parameters.suspension_spring_angle) \
-                                 .translated_y(parameters.road_wheel_width / 2 +
-                                               parameters.road_wheel_arm_clearance +
-                                               parameters.suspension_arm_thickness +
-                                               parameters.spring_mount_thickness / 2)
-                             ]).make_part("{}_suspension".format(name))
-
-
-left_wheel_suspension = make_wheel_suspension(False)
-right_wheel_suspension = make_wheel_suspension(True)
-
-if __name__ == "__main__":
-    codecad.commandline_render(left_wheel_suspension, 0.1)
