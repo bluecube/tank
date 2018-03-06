@@ -12,7 +12,7 @@ thin_wall = 2 * extrusion_width
 thick_wall = 4 * extrusion_width
 overhang_angle = 45 # [deg] How steep overhanging walls we are willing to print (90 is ceiling)
 
-# Dimensions for vitamins:
+# Dimensions for common vitamins:
 small_screw_diameter = 3
 small_screw_head_diameter = 5.5
 small_screw_head_height = 3

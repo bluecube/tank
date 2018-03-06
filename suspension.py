@@ -38,22 +38,26 @@ spring_bottom_mount_thickness = 6.5
 spring_preload_force = 0.95 # [kg]
 spring_full_compression_force = 4.5 # [kg]
 
+o_ring_minor_diameter = 2
+
 arm_clearance = 1
 clearance = 2
 
-o_ring_minor_diameter = 2
+bogie_spacing = 110 # [mm] distance between bogies
+bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 wheel_diameter = 30
 wheel_width = 30 + parameters.small_screw_head_height # Total width of the wheel pair
 arm_width = 8
 bogie_width = arm_width
+
+suspension_travel = 30 # [mm]
+suspension_sag = 0.3 # Ratio of travel from neutral position down
+
 half_wheel_width = (wheel_width - bogie_width) / 2 - arm_clearance
 
 assert wheel_width - 2 * half_wheel_width >= track.guide_width + track.clearance
 
 arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
-
-suspension_travel = 30 # [mm]
-suspension_sag = 0.3 # Ratio of travel from neutral position down
 
 
 # Variables for optimization:
@@ -423,7 +427,7 @@ outer_wheel = road_wheel_generator(wheel_diameter,
                                    parameters.small_screw_head_diameter,
                                    parameters.small_screw_head_height,
                                    False).make_part("outer_road_wheel", ["3d_print"])
-bogie = bogie_generator(50, # Wheel spacing
+bogie = bogie_generator(bogie_wheel_spacing,
                         bogie_width, parameters.shoulder_screw_length + parameters.shoulder_screw_head_height,
                         parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
                         4 * parameters.layer_height, 6 * parameters.layer_height,
