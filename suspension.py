@@ -26,7 +26,7 @@ def trace(value, name=None):
         print(name + ":", value)
     return value
 
-wheel_count = 10 # Count of road wheels on both sides of the vehicle
+bogie_count = 6 # Count of bogies on both sides of the vehicle
 
 spring_length = 62 # Center to center, relaxed
 spring_travel = 11
@@ -44,21 +44,17 @@ clearance = 2
 o_ring_minor_diameter = 2
 wheel_diameter = 30
 wheel_width = 30 + parameters.small_screw_head_height # Total width of the wheel pair
-bogie_width = 8
+arm_width = 8
+bogie_width = arm_width
 half_wheel_width = (wheel_width - bogie_width) / 2 - arm_clearance
-p("half_wheel_width")
 
-arm_thickness = parameters.small_bearing_od + 2 * parameters.thick_wall
+assert wheel_width - 2 * half_wheel_width >= track.guide_width + track.clearance
 
-wheel_spacing = 60 # Distance between wheels [mm]
+arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
 
 suspension_travel = 30 # [mm]
 suspension_sag = 0.3 # Ratio of travel from neutral position down
 
-# Calculating suspension geometry:
-
-assert 2 * track.guide_height + arm_thickness + 2 * track.clearance < wheel_diameter, \
-       "Bearing must fit inside the wheel, accounting for track guide height"
 
 # Variables for optimization:
 ARM_LENGTH = 0
@@ -196,7 +192,7 @@ def objective(p):
 
 initial = [0] * 8
 initial[ARM_LENGTH] = wheel_diameter
-initial[SPRING_ARM_LENGTH] = wheel_diameter * parameters.design_weight * suspension_sag / (wheel_count * spring_full_compression_force)
+initial[SPRING_ARM_LENGTH] = wheel_diameter * parameters.design_weight * suspension_sag / (bogie_count * spring_full_compression_force)
 initial[SPRING_ARM_ANGLE_OFFSET] = -math.pi / 4
 initial[ARM_UP_ANGLE] = math.pi / 6
 initial[ARM_DOWN_ANGLE] = -math.pi / 4
@@ -207,31 +203,28 @@ initial[SPRING_ANCHOR_Y] = spring_length / 5
 all_constraints = [{"type": "eq", "fun": fun} for fun in equalities] + \
                   [{"type": "ineq", "fun": fun} for fun in inequalities]
 
-print("initial")
-for constraint in all_constraints:
-    print(constraint["type"], constraint["fun"](initial))
-
-print("Optimizing kinematics - step 1 ...")
-with warnings.catch_warnings():
-    warnings.simplefilter("error")
-    #result = scipy.optimize.minimize(objective,
-    #                                 initial,
-    #                                 method="SLSQP",
-    #                                 options={"maxiter": 5000},
-    #                                 constraints=[{"type": "eq", "fun": fun} for fun in equalities] +
-    #                                             [{"type": "ineq", "fun": fun} for fun in inequalities])
-    result = scipy.optimize.minimize(objective,
-                                     initial,
-                                     method="COBYLA",
-                                     options={"maxiter": 50000,
-                                              "rhobeg": 1,
-                                              "catol": 1},
-                                     constraints=[{"type": "ineq", "fun": fun} for fun in equalities] +
-                                                 [{"type": "ineq", "fun": lambda p, fun=fun: -fun(p)} for fun in equalities] +
-                                                 [{"type": "ineq", "fun": fun} for fun in inequalities])
-    print(result)
-params = result.x
-print("done")
+#print("Optimizing kinematics - step 1 ...")
+#with warnings.catch_warnings():
+#    warnings.simplefilter("error")
+#    #result = scipy.optimize.minimize(objective,
+#    #                                 initial,
+#    #                                 method="SLSQP",
+#    #                                 options={"maxiter": 5000},
+#    #                                 constraints=[{"type": "eq", "fun": fun} for fun in equalities] +
+#    #                                             [{"type": "ineq", "fun": fun} for fun in inequalities])
+#    result = scipy.optimize.minimize(objective,
+#                                     initial,
+#                                     method="COBYLA",
+#                                     options={"maxiter": 50000,
+#                                              "rhobeg": 1,
+#                                              "catol": 1},
+#                                     constraints=[{"type": "ineq", "fun": fun} for fun in equalities] +
+#                                                 [{"type": "ineq", "fun": lambda p, fun=fun: -fun(p)} for fun in equalities] +
+#                                                 [{"type": "ineq", "fun": fun} for fun in inequalities])
+#    print(result)
+#params = result.x
+#print("done")
+params = initial
 
 def plot_wheel_forces(params):
     import matplotlib.pyplot as plt
@@ -293,7 +286,7 @@ def road_wheel_generator(diameter, width, axle_diameter,
                           symmetrical=False).translated_z(screw_hole_depth)
 
     if hex_hole:
-        wheel -= regular_polygon2d(n=6, d=screw_hole_diameter).extruded(2 * screw_hole_depth)
+        wheel -= regular_polygon2d(n=6, d=screw_hole_diameter * 2 / math.sqrt(3)).extruded(2 * screw_hole_depth)
     else:
         wheel -= cylinder(d=screw_hole_diameter, h=2 * screw_hole_depth)
 
@@ -314,6 +307,90 @@ def road_wheel_generator(diameter, width, axle_diameter,
 
     return wheel
 
+def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
+                    bearing_diameter, bearing_thickness, bearing_shoulder_size,
+                    thin_wall, thick_wall,
+                    pivot_z,
+                    wheel_cutout_diameter,
+                    arm_cutout_diameter,
+                    arm_cutout_thickness,
+                    arm_cutout_angle,
+                    shoulder_screw_diameter,
+                    shoulder_screw_diameter2,
+                    shoulder_screw_length,
+                    shoulder_screw_screw_length,
+                    shoulder_screw_head_diameter,
+                    shoulder_screw_head_height,
+                    shoulder_screw_nut_height,
+                    shoulder_screw_nut_s,
+                    overhang_angle):
+
+    assert arm_cutout_angle < 180
+
+    bogie = polygon2d([(-wheel_spacing / 2, 0),
+                       (wheel_spacing / 2, 0),
+                       (0, pivot_z)]) \
+        .offset((bearing_diameter + thin_wall + thick_wall) / 2) \
+        .extruded(upper_thickness) \
+        .rotated_x(90) \
+        .translated_z((bearing_diameter + thin_wall + thick_wall) / 2)
+
+    wheel_axis_z = bearing_diameter / 2 + thin_wall
+    pivot_z += wheel_axis_z
+
+    nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
+    pivot_end_diameter = max(shoulder_screw_diameter2, nut_outer_diameter) + 2 * thick_wall
+
+    bogie += cylinder(d=pivot_end_diameter, h=upper_thickness) \
+        .rotated_x(90) \
+        .translated_z(pivot_z)
+
+    cutout_tmp_point = (wheel_spacing * math.sin(math.radians(arm_cutout_angle / 2)), wheel_spacing * math.cos(math.radians(arm_cutout_angle / 2)))
+    screw_sink_in = -2#(upper_thickness - (shoulder_screw_length + shoulder_screw_head_height)) / 2
+    screw_head_plane_y = - (shoulder_screw_length - shoulder_screw_screw_length) / 2
+    nut_plane_y = screw_head_plane_y + shoulder_screw_length - shoulder_screw_nut_height - shoulder_screw_diameter / 6
+
+    # Screw head
+    bogie -= cylinder(d=shoulder_screw_head_diameter, h=upper_thickness, symmetrical=False) \
+        .rotated_x(90) \
+        .translated(0, screw_head_plane_y, pivot_z)
+    # Smooth part
+    bogie -= cylinder(d=shoulder_screw_diameter2, h=2 * (shoulder_screw_length - shoulder_screw_screw_length)) \
+        .rotated_x(90) \
+        .translated(0, screw_head_plane_y, pivot_z)
+    # Screw part
+    bogie -= cylinder(d=shoulder_screw_diameter, h=float("inf")) \
+        .rotated_x(90) \
+        .translated_z(pivot_z)
+    # Nut
+    bogie -= regular_polygon2d(n=6, d=nut_outer_diameter) \
+        .extruded(upper_thickness, symmetrical=False) \
+        .rotated_x(-90) \
+        .translated(0, nut_plane_y, pivot_z)
+
+    # Space for the arm
+    bogie -= polygon2d([(0, 0),
+                        cutout_tmp_point,
+                        (-cutout_tmp_point[0], cutout_tmp_point[1])]) \
+        .offset(arm_cutout_diameter / 2) \
+        .extruded(lower_thickness) \
+        .rotated_x(90) \
+        .translated_z(pivot_z)
+
+    # Wheel cutouts
+    for x in [-1, 1]:
+        x = x * wheel_spacing / 2
+        bogie -= cylinder(d=bearing_diameter - 2 * bearing_shoulder_size, h=lower_thickness).rotated_x(90).translated(x, 0, wheel_axis_z)
+        for y in [-1, 1]:
+            bogie -= cylinder(d=wheel_cutout_diameter, h=upper_thickness - lower_thickness + 1e-2).rotated_x(90).translated(x, y * upper_thickness / 2, wheel_axis_z)
+            bogie -= cylinder(d=bearing_diameter, h=2 * bearing_thickness).rotated_x(90).translated(x, y * lower_thickness / 2, wheel_axis_z)
+
+    # bottom lightening angles
+    for y in [-1, 1]:
+        bogie -= half_space().rotated_x(90 + y * (90 + overhang_angle)).translated_y(-y * lower_thickness / 2)
+
+    return bogie
+
 def spring_placeholder_generator(length): # Redo the geometry
     mounts = capsule(0, 0, 0, length, 8) - \
              circle(d=spring_bottom_mount_diameter) - \
@@ -332,7 +409,7 @@ inner_wheel = road_wheel_generator(wheel_diameter,
                                    o_ring_minor_diameter,
                                    4 * parameters.layer_height,
                                    parameters.layer_height,
-                                   parameters.small_screw_nut_s * 2 / math.sqrt(3),
+                                   parameters.small_screw_nut_s,
                                    parameters.small_screw_nut_height + parameters.small_screw_diameter / 6,
                                    True).make_part("inner_road_wheel", ["3d_print"])
 outer_wheel = road_wheel_generator(wheel_diameter,
@@ -346,6 +423,26 @@ outer_wheel = road_wheel_generator(wheel_diameter,
                                    parameters.small_screw_head_diameter,
                                    parameters.small_screw_head_height,
                                    False).make_part("outer_road_wheel", ["3d_print"])
+bogie = bogie_generator(50, # Wheel spacing
+                        bogie_width, parameters.shoulder_screw_length + parameters.shoulder_screw_head_height,
+                        parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
+                        4 * parameters.layer_height, 6 * parameters.layer_height,
+                        12, # Pivot Z
+                        wheel_diameter + 2 * clearance,
+                        arm_thickness + 2 * arm_clearance,
+                        arm_width,
+                        120, # Arm cutout angle
+                        parameters.shoulder_screw_diameter,
+                        parameters.shoulder_screw_diameter2,
+                        parameters.shoulder_screw_length,
+                        parameters.shoulder_screw_screw_length,
+                        parameters.shoulder_screw_head_diameter,
+                        parameters.shoulder_screw_head_height,
+                        parameters.shoulder_screw_nut_height,
+                        parameters.shoulder_screw_nut_s,
+                        parameters.overhang_angle,
+                        ).make_part("bogie", ["3d_print"])
+
 
 def suspension_generator(params, state):
     arm_point = polar2rect(params[state] + params[SPRING_ARM_ANGLE_OFFSET], params[SPRING_ARM_LENGTH])
@@ -365,6 +462,10 @@ def suspension_generator(params, state):
 
     return asm
 
+
+if __name__ == "__main__":
+    codecad.commandline_render(bogie.shape(), 0.1)
+    sys.exit()
 if __name__ == "__main__":
     print(params)
     width = suspension_width(params)
