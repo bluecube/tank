@@ -27,12 +27,15 @@ o_ring_minor_diameter = 2
 arm_clearance = 1
 clearance = 2
 
-bogie_spacing = 110 # [mm] distance between bogies
-bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 wheel_diameter = 30
 wheel_width = 30 # Total width of the wheel pair
 arm_width = 8
+
+bogie_spacing = 110 # [mm] distance between bogies
+bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 bogie_width = arm_width
+bogie_pivot_z = 12
+bogie_arm_cutout_angle = 100 # Degrees
 
 suspension_travel = 30 # [mm]
 suspension_sag = 0.3 # Ratio of travel from neutral position down
@@ -118,6 +121,16 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
 
     assert arm_cutout_angle < 180
 
+    bearing_radius = bearing_diameter / 2
+    nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
+    pivot_protected_diameter = max(shoulder_screw_diameter2, nut_outer_diameter)
+    pivot_end_diameter = pivot_protected_diameter + 2 * thick_wall
+    pivot_to_wheel_distance = math.hypot(wheel_spacing / 2, pivot_z)
+    wheel_cutout_angled_part = min(pivot_to_wheel_distance - wheel_cutout_diameter / 2 - pivot_protected_diameter / 2 - thin_wall, (upper_thickness - lower_thickness) / 2)
+    print(wheel_cutout_angled_part)
+
+    assert pivot_to_wheel_distance >= thin_wall + wheel_cutout_diameter / 2 + arm_cutout_diameter / 2
+
     bogie = polygon2d([(-wheel_spacing / 2, 0),
                        (wheel_spacing / 2, 0),
                        (0, pivot_z)]) \
@@ -126,10 +139,7 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .rotated_x(90) \
         .translated_z((thick_wall - thin_wall) / 2)
 
-    bottom_z = -bearing_diameter / 2 - thin_wall
-
-    nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
-    pivot_end_diameter = max(shoulder_screw_diameter2, nut_outer_diameter) + 2 * thick_wall
+    bottom_z = -bearing_radius - thin_wall
 
     bogie += cylinder(d=pivot_end_diameter, h=upper_thickness) \
         .rotated_x(90) \
@@ -167,13 +177,22 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .rotated_x(90) \
         .translated_z(pivot_z)
 
+    print(upper_thickness - lower_thickness / 2)
+
     # Wheel cutouts
+    cutout = polygon2d([(-bearing_radius, -bearing_thickness),
+                        (bearing_radius, -bearing_thickness),
+                        (bearing_radius, 0),
+                        (wheel_cutout_diameter / 2, 0),
+                        (wheel_cutout_diameter / 2, (upper_thickness - lower_thickness) / 2 - wheel_cutout_angled_part),
+                        (wheel_cutout_diameter / 2 + (upper_thickness - lower_thickness) / 2 + wheel_cutout_angled_part, upper_thickness - lower_thickness),
+                        (-bearing_radius, upper_thickness - lower_thickness)]) \
+        .revolved()
     for x in [-1, 1]:
         x = x * wheel_spacing / 2
         bogie -= cylinder(d=bearing_diameter - 2 * bearing_shoulder_size, h=lower_thickness).rotated_x(90).translated_x(x)
         for y in [-1, 1]:
-            bogie -= cylinder(d=wheel_cutout_diameter, h=upper_thickness - lower_thickness + 1e-2).rotated_x(90).translated(x, y * upper_thickness / 2, 0)
-            bogie -= cylinder(d=bearing_diameter, h=2 * bearing_thickness).rotated_x(90).translated(x, y * lower_thickness / 2, 0)
+            bogie -= cutout.rotated_z(90 - y * 90).translated(x, y * lower_thickness / 2, 0)
 
     # bottom lightening angles
     for y in [-1, 1]:
@@ -218,11 +237,11 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         bogie_width, parameters.shoulder_screw_length + parameters.shoulder_screw_head_height,
                         parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
                         4 * parameters.extrusion_width, 6 * parameters.extrusion_width,
-                        12, # Pivot Z
+                        bogie_pivot_z,
                         wheel_diameter + 2 * clearance,
                         arm_thickness + 2 * arm_clearance,
                         arm_width,
-                        100, # Arm cutout angle
+                        bogie_arm_cutout_angle,
                         parameters.shoulder_screw_diameter,
                         parameters.shoulder_screw_diameter2,
                         parameters.shoulder_screw_length,
