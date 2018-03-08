@@ -1,7 +1,7 @@
 import sys
-
-import warnings
 import math
+
+import scipy.optimize
 
 import codecad
 from codecad.shapes import *
@@ -47,6 +47,81 @@ assert wheel_width - 2 * half_wheel_width >= track.guide_width + track.clearance
 assert wheel_width <= track.width
 
 arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
+
+def get_spring_anchor_point(spring_arm_length):
+    """ Return the spring anchor point coordinates in 2D relative to arm pivot as codecad Vector.
+    Spring is placed to be horizontal and right angle to the arm at full compression. """
+    return codecad.util.Vector(spring_length - spring_travel, -spring_arm_length)
+
+def get_travel_angle(spring_arm_length, spring_anchor_point):
+    """ Calculate travel angle of the suspension arm based on spring length.
+    Uses spring anchor point placement from get_spring_anchor_point. """
+    spring_compressed_length = spring_length - spring_travel
+
+    if spring_arm_length == 0:
+        return 0
+
+    spring_anchor_distance = abs(spring_anchor_point)
+    compressed_anchor_angle = math.atan(spring_compressed_length / spring_arm_length)
+
+    tmp = (spring_arm_length**2 + spring_anchor_distance**2 - spring_length**2) / \
+          (2 * spring_arm_length * spring_anchor_distance)
+    return math.acos(tmp) - compressed_anchor_angle
+
+def get_spring_point(spring_arm_length, angle):
+    return codecad.util.Vector(-math.sin(angle), -math.cos(angle)) * spring_arm_length
+
+def spring_arm_length_equation(spring_arm_length):
+    """ Equation describing spring location relative to the pivot. """
+    spring_anchor_point = get_spring_anchor_point(spring_arm_length)
+    travel_angle = get_travel_angle(spring_arm_length, spring_anchor_point)
+    spring_down_position_point = get_spring_point(spring_arm_length, travel_angle)
+
+    u = (spring_anchor_point - spring_down_position_point).normalized()
+    v = codecad.util.Vector(u.y, -u.x)
+
+    spring_axis_to_pivot_point = spring_anchor_point.dot(v)
+
+    return spring_axis_to_pivot_point - (arm_thickness / 2 + spring_diameter / 2 + arm_clearance)
+
+spring_arm_length = scipy.optimize.brentq(spring_arm_length_equation, 0, arm_thickness + spring_diameter)
+spring_anchor_point = get_spring_anchor_point(spring_arm_length)
+travel_angle = get_travel_angle(spring_arm_length, spring_anchor_point)
+
+# The highest distance above bogie pivot where the wheel might interfere
+wheel_above_bogie_pivot = wheel_diameter / 2 + \
+    math.sin(math.radians(bogie_arm_cutout_angle / 2)) * bogie_wheel_spacing / 2 - \
+    math.cos(math.radians(bogie_arm_cutout_angle / 2)) * bogie_pivot_z
+bogie_pivot_upper_limit = spring_anchor_point.y - spring_diameter / 2 - clearance - wheel_above_bogie_pivot
+
+def get_arm_angle(arm_length, y):
+    """ Calculate angle of the suspension arm at the top position """
+    return math.asin(y / arm_length)
+
+def get_arm_travel(arm_length, up_arm_angle):
+    """ Calculate total length wheel vertical travel """
+    return bogie_pivot_upper_limit - math.sin(up_arm_angle - travel_angle) * arm_length
+
+def arm_length_equation(arm_length):
+    up_angle = get_arm_angle(arm_length, bogie_pivot_upper_limit)
+    down_angle = up_angle - travel_angle
+    assert down_angle > -math.pi / 2
+
+    travel = get_arm_travel(arm_length, up_angle)
+    assert travel >= suspension_travel
+
+    neutral_angle = get_arm_angle(arm_length, bogie_pivot_upper_limit - (1 - suspension_sag) * travel)
+
+    neutral_spring_length = abs(spring_anchor_point - get_spring_point(spring_arm_length, up_angle - neutral_angle))
+    neutral_spring_force = spring_preload_force + (spring_full_compression_force - spring_preload_force) * (spring_length - neutral_spring_length) / spring_travel
+    return neutral_spring_force
+    #neutral_spring_torque =
+
+    #neutral_wheel_torque = parameters.design_weight * arm_length * math.cos(neutral_angle)
+
+    #return neutral_wheel_torque - neutral_spring_torque
+
+print(arm_length_equation(100))
 
 def road_wheel_generator(diameter, width, axle_diameter,
                          shoulder_height, shoulder_width,
@@ -285,16 +360,8 @@ def suspension_generator(params, state):
 
 
 if __name__ == "__main__":
-    codecad.commandline_render(bogie.rotated_z(30).rotated_x(30), 0.1)
+    codecad.commandline_render(bogie.rotated_z(45).rotated_x(0), 0.1)
     sys.exit()
-
-    print(params)
-    width = suspension_width(params)
-    height = suspension_height(params)
-
-    print("width, height:", width, height)
-    print("up travel:", (math.sin(params[ARM_UP_ANGLE]) - math.sin(params[ARM_NEUTRAL_ANGLE])) * params[ARM_LENGTH])
-    print("down travel:", (math.sin(params[ARM_NEUTRAL_ANGLE]) - math.sin(params[ARM_DOWN_ANGLE])) * params[ARM_LENGTH])
 
     plot_wheel_forces(params)
 
