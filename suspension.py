@@ -34,8 +34,8 @@ arm_width = 8
 bogie_spacing = 110 # [mm] distance between bogies
 bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 bogie_width = arm_width
-bogie_pivot_z = 12
-bogie_arm_cutout_angle = 100 # Degrees
+bogie_pivot_z = 7
+bogie_arm_cutout_angle = 60 # Degrees
 
 suspension_travel = 30 # [mm]
 suspension_sag = 0.3 # Ratio of travel from neutral position down
@@ -116,17 +116,16 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
                     shoulder_screw_head_diameter,
                     shoulder_screw_head_height,
                     shoulder_screw_nut_height,
-                    shoulder_screw_nut_s,
-                    overhang_angle):
+                    shoulder_screw_nut_s):
 
     assert arm_cutout_angle < 180
 
     bearing_radius = bearing_diameter / 2
     nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
-    pivot_protected_diameter = max(shoulder_screw_diameter2, nut_outer_diameter)
+    pivot_protected_diameter = max(shoulder_screw_diameter2, nut_outer_diameter) + 2 * thin_wall
     pivot_end_diameter = pivot_protected_diameter + 2 * thick_wall
     pivot_to_wheel_distance = math.hypot(wheel_spacing / 2, pivot_z)
-    wheel_cutout_angled_part = min(pivot_to_wheel_distance - wheel_cutout_diameter / 2 - pivot_protected_diameter / 2 - thin_wall, (upper_thickness - lower_thickness) / 2)
+    wheel_cutout_angled_part = min(pivot_to_wheel_distance - wheel_cutout_diameter / 2 - pivot_protected_diameter / 2, (upper_thickness - lower_thickness) / 2)
 
     assert pivot_to_wheel_distance >= thin_wall + wheel_cutout_diameter / 2 + arm_cutout_diameter / 2
 
@@ -176,7 +175,6 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .rotated_x(90) \
         .translated_z(pivot_z)
 
-
     # Wheel cutouts
     cutout = polygon2d([(-bearing_radius, -bearing_thickness),
                         (bearing_radius, -bearing_thickness),
@@ -193,8 +191,9 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
             bogie -= cutout.rotated_z(90 - y * 90).translated(x, y * lower_thickness / 2, 0)
 
     # bottom lightening angles
+    base_thickness = upper_thickness / 2 - (pivot_z - bottom_z - pivot_protected_diameter / 2)
     for y in [-1, 1]:
-        bogie -= half_space().rotated_x(90 + y * (90 + overhang_angle)).translated(0, -y * lower_thickness / 2, bottom_z)
+        bogie -= half_space().rotated_x(90 + y * 135).translated(0, -y * base_thickness, bottom_z)
 
     return bogie
 
@@ -248,7 +247,6 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         parameters.shoulder_screw_head_height,
                         parameters.shoulder_screw_nut_height,
                         parameters.shoulder_screw_nut_s,
-                        parameters.overhang_angle,
                         ).make_part("bogie", ["3d_print"])
 
 bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
