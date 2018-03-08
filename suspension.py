@@ -127,7 +127,6 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
     pivot_end_diameter = pivot_protected_diameter + 2 * thick_wall
     pivot_to_wheel_distance = math.hypot(wheel_spacing / 2, pivot_z)
     wheel_cutout_angled_part = min(pivot_to_wheel_distance - wheel_cutout_diameter / 2 - pivot_protected_diameter / 2 - thin_wall, (upper_thickness - lower_thickness) / 2)
-    print(wheel_cutout_angled_part)
 
     assert pivot_to_wheel_distance >= thin_wall + wheel_cutout_diameter / 2 + arm_cutout_diameter / 2
 
@@ -177,7 +176,6 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .rotated_x(90) \
         .translated_z(pivot_z)
 
-    print(upper_thickness - lower_thickness / 2)
 
     # Wheel cutouts
     cutout = polygon2d([(-bearing_radius, -bearing_thickness),
