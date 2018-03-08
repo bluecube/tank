@@ -6,7 +6,6 @@ import scipy.optimize
 import codecad
 from codecad.shapes import *
 
-import util
 import parameters
 import track
 
