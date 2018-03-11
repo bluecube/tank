@@ -7,7 +7,6 @@ import codecad
 from codecad.shapes import *
 
 import parameters
-import track
 
 bogie_count = 6 # Count of bogies on both sides of the vehicle
 
@@ -40,11 +39,8 @@ bogie_arm_cutout_angle = 60 # Degrees
 suspension_min_travel = 30 # [mm]
 suspension_sag = 0.3 # Ratio of travel from neutral position down
 
-half_wheel_width = (wheel_width - bogie_width) / 2 - wheel_clearance
-
-assert wheel_width - 2 * half_wheel_width >= track.guide_width + track.clearance, \
-    "The track guide has enough space between the wheel halves"
-assert wheel_width <= track.width
+wheel_gap = bogie_width + 2 * wheel_clearance
+half_wheel_width = (wheel_width - wheel_gap) / 2
 
 arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
 
@@ -346,7 +342,7 @@ def spring_placeholder_generator(length): # Fix the geometry
 inner_road_wheel = road_wheel_generator(wheel_diameter,
                                         half_wheel_width,
                                         parameters.small_bearing_id,
-                                        arm_clearance,
+                                        wheel_clearance,
                                         parameters.small_bearing_shoulder_size,
                                         o_ring_minor_diameter,
                                         3 * parameters.extrusion_width,
@@ -358,7 +354,7 @@ inner_road_wheel = road_wheel_generator(wheel_diameter,
 outer_road_wheel = road_wheel_generator(wheel_diameter,
                                         half_wheel_width,
                                         parameters.small_bearing_id,
-                                        arm_clearance,
+                                        wheel_clearance,
                                         parameters.small_bearing_shoulder_size,
                                         o_ring_minor_diameter,
                                         3 * parameters.extrusion_width,

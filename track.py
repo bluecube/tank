@@ -4,26 +4,28 @@ import codecad
 from codecad.shapes import *
 
 import parameters
+import suspension
 
 nail_diameter = 1.25
 nail_length = 16 # Including head
 
+clearance = 1
 thickness = nail_diameter + 2 * 3 * parameters.extrusion_width
 segment_length = 15
 width = 2 * nail_length
 guide_height = 6
 guide_length = 7
-guide_width = 9
+guide_width = suspension.wheel_gap - clearance
 guide_side_angle = 30
 guide_clearance_radius = 10
 negative_bend_angle = 10
-clearance = 1
 
 connector_width = 4
 
 segment_width = width - 2 * (clearance + connector_width)
 connector_length = 2 * thickness + clearance
 
+assert suspension.wheel_width <= width + 2 * clearance
 
 def track_segment_generator(thickness, length, width, connector_width,
                             pivot_diameter,
