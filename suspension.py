@@ -22,15 +22,16 @@ spring_full_compression_force = 4.5 # [kg]
 
 o_ring_minor_diameter = 2
 
+suspension_spacing = 115
+
 arm_clearance = 1
 wheel_clearance = 2
 
 wheel_diameter = 30
 wheel_width = 30 # Total width of the wheel pair
 arm_width = 8
-arm_knee_height = 8
+arm_knee_height = 11
 
-bogie_spacing = 110 # [mm] distance between bogies
 bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 bogie_width = arm_width
 bogie_pivot_z = 7
@@ -157,6 +158,11 @@ assert arm_down_angle > -math.pi / 2
 assert suspension_travel >= suspension_min_travel
 assert arm_length > spring_length - spring_travel
 assert bogie_up_swing_angle > 0
+assert math.degrees(arm_up_angle - arm_neutral_angle) < bogie_arm_cutout_angle
+assert math.degrees(arm_neutral_angle - arm_down_angle) < bogie_arm_cutout_angle
+
+assert math.hypot(math.cos(arm_down_angle) * arm_length + suspension_spacing, math.sin(arm_down_angle) * arm_length) > \
+    (arm_length + 2 * math.hypot(bogie_wheel_spacing / 2, bogie_pivot_z) + wheel_diameter + wheel_clearance)
 
 def road_wheel_generator(diameter, width, axle_diameter,
                          shoulder_height, shoulder_width,
@@ -216,8 +222,7 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
                     thin_wall, thick_wall,
                     pivot_z,
                     wheel_diameter,
-                    weel_clearance,
-                    arm_cutout_diameter,
+                    arm_thickness_diameter,
                     arm_cutout_thickness,
                     arm_cutout_angle,
                     shoulder_screw_diameter,
@@ -228,7 +233,9 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
                     shoulder_screw_head_height,
                     shoulder_screw_nut_height,
                     shoulder_screw_nut_s,
-                    arm_knee_height):
+                    arm_knee_height,
+                    arm_clearance,
+                    weel_clearance):
 
     assert arm_cutout_angle < 180
 
@@ -242,7 +249,7 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
     wheel_cutout_diameter = wheel_diameter + 2 * wheel_clearance
     wheel_cutout_angled_part = min(pivot_to_wheel_distance - wheel_cutout_diameter / 2 - pivot_protected_diameter / 2, (upper_thickness - lower_thickness) / 2)
 
-    assert pivot_to_wheel_distance >= thin_wall + wheel_cutout_diameter / 2 + arm_cutout_diameter / 2
+    assert pivot_to_wheel_distance >= thin_wall + wheel_cutout_diameter / 2 + arm_thickness / 2
     assert arm_knee_height > pivot_end_diameter / 2 # This is a neccessary but not sufficient condition!
 
     bogie = polygon2d([(-wheel_spacing / 2, 0),
@@ -283,10 +290,12 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .translated(0, nut_plane_y, pivot_z)
 
     # Space for the arm
-    bogie -= polygon2d([(0, 0),
+    cutout = polygon2d([(0, 0),
                         cutout_tmp_point,
                         (-cutout_tmp_point[0], cutout_tmp_point[1])]) \
-        .offset(arm_cutout_diameter / 2) \
+        .offset(arm_thickness / 2)
+    cutout += circle(d=arm_thickness + 2 * arm_clearance)
+    bogie -= cutout \
         .extruded(lower_thickness) \
         .rotated_x(90) \
         .translated_z(pivot_z)
@@ -377,8 +386,7 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         4 * parameters.extrusion_width, 6 * parameters.extrusion_width,
                         bogie_pivot_z,
                         wheel_diameter,
-                        wheel_clearance,
-                        arm_thickness + 2 * arm_clearance,
+                        arm_thickness,
                         arm_width,
                         bogie_arm_cutout_angle,
                         parameters.shoulder_screw_diameter,
@@ -390,6 +398,8 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         parameters.shoulder_screw_nut_height,
                         parameters.shoulder_screw_nut_s,
                         arm_knee_height,
+                        arm_clearance,
+                        wheel_clearance,
                         ).make_part("bogie", ["3d_print"])
 arm = arm_generator(arm_thickness, arm_width,
                     arm_length, spring_arm_length,
@@ -413,7 +423,7 @@ bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
                                  ).make_part("bogie_assembly")
 
 
-def suspension_generator(arm_angle, bogie_angle):
+def suspension_generator(arm_angle, bogie_angle_fraction = None):
     spring_point = get_spring_point(spring_arm_length, arm_up_angle - arm_angle)
 
     v = spring_point - spring_anchor_point
@@ -423,7 +433,13 @@ def suspension_generator(arm_angle, bogie_angle):
     spring = spring_placeholder_generator(length).make_part("spring", ["vitamins"])
 
     degrees = -math.degrees(arm_angle)
-    bogie_degrees = -math.degrees(bogie_angle)
+
+    if bogie_angle_fraction is None:
+        bogie_degrees = 0
+    else:
+        low = -bogie_arm_cutout_angle / 2 - math.degrees(arm_neutral_angle - arm_angle)
+        high = bogie_arm_cutout_angle / 2 - math.degrees(arm_neutral_angle - arm_angle)
+        bogie_degrees = low + (high - low) * bogie_angle_fraction
 
     asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees),
                             bogie_assembly.translated_z(-bogie_pivot_z - wheel_diameter / 2).rotated_y(-degrees - bogie_degrees).translated_x(arm_length).rotated_y(degrees),
