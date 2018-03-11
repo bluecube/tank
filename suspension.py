@@ -215,7 +215,8 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
                     bearing_diameter, bearing_thickness, bearing_shoulder_size,
                     thin_wall, thick_wall,
                     pivot_z,
-                    wheel_cutout_diameter,
+                    wheel_diameter,
+                    weel_clearance,
                     arm_cutout_diameter,
                     arm_cutout_thickness,
                     arm_cutout_angle,
@@ -232,11 +233,13 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
     assert arm_cutout_angle < 180
 
     bearing_radius = bearing_diameter / 2
+    bearing_shoulder_radius = bearing_radius - bearing_shoulder_size
     nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
     pivot_protected_diameter = max(shoulder_screw_diameter2, nut_outer_diameter)
     pivot_end_diameter = pivot_protected_diameter + 2 * thick_wall
     pivot_protected_diameter += 2 * thin_wall
     pivot_to_wheel_distance = math.hypot(wheel_spacing / 2, pivot_z)
+    wheel_cutout_diameter = wheel_diameter + 2 * wheel_clearance
     wheel_cutout_angled_part = min(pivot_to_wheel_distance - wheel_cutout_diameter / 2 - pivot_protected_diameter / 2, (upper_thickness - lower_thickness) / 2)
 
     assert pivot_to_wheel_distance >= thin_wall + wheel_cutout_diameter / 2 + arm_cutout_diameter / 2
@@ -288,20 +291,25 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .rotated_x(90) \
         .translated_z(pivot_z)
 
-    # Wheel cutouts
-    cutout = polygon2d([(-bearing_radius, -bearing_thickness),
+    # Wheel and bearing cutouts
+    cutout = polygon2d([(-bearing_shoulder_radius, -upper_thickness),
+                        (bearing_shoulder_radius, -upper_thickness),
+                        (bearing_shoulder_radius, -bearing_thickness),
                         (bearing_radius, -bearing_thickness),
                         (bearing_radius, 0),
-                        (wheel_cutout_diameter / 2, 0),
                         (wheel_cutout_diameter / 2, (upper_thickness - lower_thickness) / 2 - wheel_cutout_angled_part),
                         (wheel_cutout_diameter / 2 + (upper_thickness - lower_thickness) / 2 + wheel_cutout_angled_part, upper_thickness - lower_thickness),
-                        (-bearing_radius, upper_thickness - lower_thickness)]) \
-        .revolved()
+                        (-bearing_shoulder_radius, upper_thickness - lower_thickness)])
+    cutout += rectangle(wheel_diameter, 2 * upper_thickness) \
+        .translated_y(upper_thickness + wheel_clearance) \
+        .offset(wheel_clearance)
+
+    cutout = cutout.translated_y(lower_thickness / 2)
+    cutout = cutout + cutout.mirrored_y()
+
+    cutout = cutout.revolved()
     for x in [-1, 1]:
-        x = x * wheel_spacing / 2
-        bogie -= cylinder(d=bearing_diameter - 2 * bearing_shoulder_size, h=lower_thickness).rotated_x(90).translated_x(x)
-        for y in [-1, 1]:
-            bogie -= cutout.rotated_z(90 - y * 90).translated(x, y * lower_thickness / 2, 0)
+        bogie -= cutout.translated_x(x * wheel_spacing / 2)
 
     # bottom lightening angles
     base_thickness = upper_thickness / 2 - (pivot_z - bottom_z - pivot_protected_diameter / 2)
@@ -368,7 +376,8 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
                         4 * parameters.extrusion_width, 6 * parameters.extrusion_width,
                         bogie_pivot_z,
-                        wheel_diameter + 2 * wheel_clearance,
+                        wheel_diameter,
+                        wheel_clearance,
                         arm_thickness + 2 * arm_clearance,
                         arm_width,
                         bogie_arm_cutout_angle,
