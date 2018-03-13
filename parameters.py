@@ -23,9 +23,9 @@ small_screw_nut_s = 5.5 # Nut size across the flats
 # All shoulder screws should be M5 6x20
 shoulder_screw_diameter = 5
 shoulder_screw_diameter2 = 6
-shoulder_screw_length = 20
+shoulder_screw_length = 29.5
 shoulder_screw_screw_length = 9.5
-shoulder_screw_head_diameter = 10.5 #?
+shoulder_screw_head_diameter = 10
 shoulder_screw_head_height = 4.5
 shoulder_screw_nut_height = 6.8
 shoulder_screw_nut_s = 8

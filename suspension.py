@@ -27,18 +27,18 @@ suspension_spacing = 120
 arm_clearance = 1
 wheel_clearance = 2
 
-wheel_diameter = 25 + parameters.small_screw_head_height
-wheel_width = 30 # Total width of the wheel pair
+wheel_diameter = 34
+wheel_width = 25 + parameters.small_screw_head_height # Total width of the wheel pair
 
 arm_width = 8
-arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
+arm_thickness = parameters.shoulder_screw_diameter2 + 10 * parameters.extrusion_width
 arm_knee_height = 14
-arm_knee_angle = 20
+arm_knee_angle = 15
 
-bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
+bogie_wheel_spacing = 55 # [mm] distance between wheels of one bogie
 bogie_width = arm_width
 bogie_pivot_z = 7
-bogie_arm_cutout_angle = 80 # Degrees
+bogie_arm_cutout_angle = 75 # Degrees
 
 suspension_min_travel = 30 # [mm]
 suspension_sag = 0.3 # Ratio of travel from neutral position down
@@ -301,8 +301,7 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .translated_z(pivot_z)
 
     cutout_tmp_point = (wheel_spacing * math.sin(math.radians(arm_cutout_angle / 2)), wheel_spacing * math.cos(math.radians(arm_cutout_angle / 2)))
-    screw_sink_in = -2#(upper_thickness - (shoulder_screw_length + shoulder_screw_head_height)) / 2
-    screw_head_plane_y = - (shoulder_screw_length - shoulder_screw_screw_length) / 2
+    screw_head_plane_y = -upper_thickness / 2 + shoulder_screw_head_height
     nut_plane_y = screw_head_plane_y + shoulder_screw_length - shoulder_screw_nut_height - shoulder_screw_diameter / 6
 
     # Screw head
@@ -421,7 +420,7 @@ outer_road_wheel = road_wheel_generator(wheel_diameter,
                                         False
                                         ).make_part("outer_road_wheel", ["3d_print"])
 bogie = bogie_generator(bogie_wheel_spacing,
-                        bogie_width, parameters.shoulder_screw_length + parameters.shoulder_screw_head_height,
+                        bogie_width, wheel_width,
                         parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
                         4 * parameters.extrusion_width, 6 * parameters.extrusion_width,
                         bogie_pivot_z,

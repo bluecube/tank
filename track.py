@@ -7,12 +7,12 @@ import parameters
 import suspension
 
 nail_diameter = 1.25
-nail_length = 16 # Including head
+nail_length = 16
 
 clearance = 1
 thickness = nail_diameter + 2 * 3 * parameters.extrusion_width
 segment_length = 15
-width = 2 * nail_length
+width = 2 * nail_length + 1
 guide_height = 6
 guide_length = 7
 guide_width = suspension.wheel_gap - clearance
@@ -20,7 +20,7 @@ guide_side_angle = 30
 guide_clearance_radius = 10
 negative_bend_angle = 10
 
-connector_width = 4
+connector_width = 5
 
 segment_width = width - 2 * (clearance + connector_width)
 connector_length = 2 * thickness + clearance
@@ -47,7 +47,7 @@ def track_segment_generator(thickness, length, width, connector_width,
                     circle(d=1) + \
                     half_plane().translated_y(0.5).rotated(negative_bend_angle)
     cut = cut.scaled(thickness)
-    cut += circle(d=pivot_diameter * 0.92)
+    cut += circle(d=pivot_diameter)
     cut = cut.translated_y(between_centers / 2)
     cut += cut.mirrored_y()
     segment -= cut.extruded(float("inf")).rotated_y(-90)
@@ -81,6 +81,8 @@ def track_segment_generator(thickness, length, width, connector_width,
 
 def track_connector_generator(thickness, length, width, pivot_diameter, clearance):
     between_centers = length - thickness
+    thickness += pivot_diameter * 0.1 # So that the resulting wall size is still a multiple of extrusion width
+    pivot_diameter *= 1.1
     connector = rectangle(thickness + clearance, 0).offset(thickness / 2)
     connector -= circle(d=pivot_diameter).translated_x(between_centers / 2)
     connector -= circle(d=pivot_diameter).translated_x(-between_centers / 2)
