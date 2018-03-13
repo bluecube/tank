@@ -27,9 +27,11 @@ suspension_spacing = 120
 arm_clearance = 1
 wheel_clearance = 2
 
-wheel_diameter = 30
+wheel_diameter = 25 + parameters.small_screw_head_height
 wheel_width = 30 # Total width of the wheel pair
+
 arm_width = 8
+arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
 arm_knee_height = 14
 
 bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
@@ -42,8 +44,6 @@ suspension_sag = 0.3 # Ratio of travel from neutral position down
 
 wheel_gap = bogie_width + 2 * wheel_clearance
 half_wheel_width = (wheel_width - wheel_gap) / 2
-
-arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
 
 def point_to_line_distance(p, l1, l2):
     """ Calculate signed perpendicular distance from p to l1-l2 """
