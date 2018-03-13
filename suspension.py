@@ -33,17 +33,19 @@ wheel_width = 30 # Total width of the wheel pair
 arm_width = 8
 arm_thickness = parameters.shoulder_screw_diameter2 + 12 * parameters.extrusion_width
 arm_knee_height = 14
+arm_knee_angle = 20
 
 bogie_wheel_spacing = 50 # [mm] distance between wheels of one bogie
 bogie_width = arm_width
 bogie_pivot_z = 7
-bogie_arm_cutout_angle = 60 # Degrees
+bogie_arm_cutout_angle = 80 # Degrees
 
 suspension_min_travel = 30 # [mm]
 suspension_sag = 0.3 # Ratio of travel from neutral position down
 
 wheel_gap = bogie_width + 2 * wheel_clearance
 half_wheel_width = (wheel_width - wheel_gap) / 2
+bogie_swing_angle = math.radians(bogie_arm_cutout_angle - arm_knee_angle) / 2
 
 def point_to_line_distance(p, l1, l2):
     """ Calculate signed perpendicular distance from p to l1-l2 """
@@ -139,7 +141,7 @@ def bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y):
 
     bogie_pivot_up_point = codecad.util.Vector(math.cos(up_angle), math.sin(up_angle)) * arm_length
 
-    left_angle = (up_angle - neutral_angle) - math.radians(bogie_arm_cutout_angle / 2)
+    left_angle = (up_angle - neutral_angle) - bogie_swing_angle
     left_wheel_position = bogie_pivot_up_point + get_bogie_wheel_position(left_angle, -1)
 
     dist_left = point_to_line_distance(left_wheel_position, spring_up_point, spring_anchor_point)
@@ -192,8 +194,8 @@ arm_neutral_angle = get_arm_angle(arm_length,
 assert arm_down_angle > -math.pi / 2
 assert suspension_travel >= suspension_min_travel
 assert arm_length > spring_length - spring_travel
-assert math.degrees(arm_up_angle - arm_neutral_angle) < bogie_arm_cutout_angle
-assert math.degrees(arm_neutral_angle - arm_down_angle) < bogie_arm_cutout_angle
+assert arm_up_angle - arm_neutral_angle < 2 * bogie_swing_angle
+assert arm_neutral_angle - arm_down_angle < 2 * bogie_swing_angle
 assert abs(bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y)) < wheel_clearance / 100, "Check that the bogie clearances are met"
 
 def road_wheel_generator(diameter, width, axle_diameter,
@@ -362,13 +364,19 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
 def arm_generator(thickness, width,
                   arm_length, spring_arm_length,
                   arm_neutral_angle, arm_up_angle,
-                  knee_height):
+                  knee_height,
+                  knee_angle):
     angle = spring_up_angle - arm_up_angle
     bogie_pivot = (arm_length, 0)
     spring_point = (spring_arm_length * math.cos(angle), spring_arm_length * math.sin(angle))
-    knee_point = (bogie_pivot[0] + knee_height * math.cos(math.pi / 2 - arm_neutral_angle),
-                  bogie_pivot[1] + knee_height * math.sin(math.pi / 2 - arm_neutral_angle))
-    arm = polygon2d([(0, 0), knee_point, bogie_pivot, (knee_point[0], knee_point[1] - 0.1), spring_point]) \
+
+    knee_mid_angle = math.pi / 2 - arm_neutral_angle
+
+    knee_point1 = (bogie_pivot[0] + (knee_height + arm_thickness / 4) * math.cos(knee_mid_angle - math.radians(knee_angle / 2)),
+                   bogie_pivot[1] + (knee_height + arm_thickness / 4) * math.sin(knee_mid_angle - math.radians(knee_angle / 2)))
+    knee_point2 = (bogie_pivot[0] + knee_height * math.cos(knee_mid_angle + math.radians(knee_angle / 2)),
+                   bogie_pivot[1] + knee_height * math.sin(knee_mid_angle + math.radians(knee_angle / 2)))
+    arm = polygon2d([(0, 0), knee_point1, bogie_pivot, knee_point2, spring_point]) \
         .offset(thickness / 2)
 
     arm -= circle(d=6)
@@ -436,7 +444,8 @@ bogie = bogie_generator(bogie_wheel_spacing,
 arm = arm_generator(arm_thickness, arm_width,
                     arm_length, spring_arm_length,
                     arm_neutral_angle, arm_up_angle,
-                    arm_knee_height
+                    arm_knee_height,
+                    arm_knee_angle
                     ).make_part("suspension_arm", ["3d_print"])
 
 bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
@@ -469,9 +478,10 @@ def suspension_generator(arm_angle, bogie_angle_fraction = None):
     if bogie_angle_fraction is None:
         bogie_degrees = 0
     else:
-        low = -bogie_arm_cutout_angle / 2 - math.degrees(arm_neutral_angle - arm_angle)
-        high = bogie_arm_cutout_angle / 2 - math.degrees(arm_neutral_angle - arm_angle)
+        low = -bogie_swing_angle + (arm_angle - arm_neutral_angle)
+        high = bogie_swing_angle + (arm_angle - arm_neutral_angle)
         bogie_degrees = low + (high - low) * bogie_angle_fraction
+        bogie_degrees = math.degrees(bogie_degrees)
 
     asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees),
                             bogie_assembly.translated_z(-bogie_pivot_z - wheel_diameter / 2).rotated_y(-degrees - bogie_degrees).translated_x(arm_length).rotated_y(degrees),
