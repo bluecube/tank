@@ -6,6 +6,7 @@ import scipy.optimize
 import codecad
 from codecad.shapes import *
 
+import tools
 import parameters
 
 bogie_count = 6 # Count of bogies on both sides of the vehicle
@@ -13,9 +14,11 @@ bogie_count = 6 # Count of bogies on both sides of the vehicle
 spring_length = 62 # Center to center, relaxed
 spring_travel = 11
 spring_diameter = 17.5
-spring_top_mount_diameter = 5
-spring_bottom_mount_diameter = 3
+spring_top_mount_id = 5
+spring_top_mount_od = 8.5
 spring_top_mount_thickness = 3.8
+spring_bottom_mount_id = 3
+spring_bottom_mount_od = 9
 spring_bottom_mount_thickness = 6.5
 spring_preload_force = 0.95 # [kg]
 spring_full_compression_force = 4.5 # [kg]
@@ -364,10 +367,15 @@ def arm_generator(thickness, width,
                   arm_length, spring_arm_length,
                   arm_neutral_angle, arm_up_angle,
                   knee_height,
-                  knee_angle):
+                  knee_angle,
+                  pivot_mount_diameter, pivot_mount_height,
+                  spring_mount_diameter, spring_mount_height,
+                  thin_wall):
     angle = spring_up_angle - arm_up_angle
     bogie_pivot = (arm_length, 0)
     spring_point = (spring_arm_length * math.cos(angle), spring_arm_length * math.sin(angle))
+
+    half_thickness = arm_thickness / 2
 
     knee_mid_angle = math.pi / 2 - arm_neutral_angle
 
@@ -375,24 +383,44 @@ def arm_generator(thickness, width,
                    bogie_pivot[1] + (knee_height + arm_thickness / 4) * math.sin(knee_mid_angle - math.radians(knee_angle / 2)))
     knee_point2 = (bogie_pivot[0] + knee_height * math.cos(knee_mid_angle + math.radians(knee_angle / 2)),
                    bogie_pivot[1] + knee_height * math.sin(knee_mid_angle + math.radians(knee_angle / 2)))
-    arm = polygon2d([(0, 0), knee_point1, bogie_pivot, knee_point2, spring_point]) \
-        .offset(thickness / 2)
+    outline = polygon2d([(0, 0), knee_point1, bogie_pivot, knee_point2, spring_point]) \
+        .offset(half_thickness)
 
-    arm -= circle(d=6)
-    arm -= circle(d=6).translated(*bogie_pivot)
-    arm -= circle(d=3).translated(*spring_point)
+    arm = outline.extruded(width).translated_z(width / 2)
 
-    arm = arm.extruded(width)
+    spring_up_vector = spring_anchor_point - spring_up_point
+    spring_rib_angle = math.degrees(math.atan2(spring_up_vector.y, spring_up_vector.x) - arm_up_angle)
+    arm += tools.cone_with_rib(height=spring_mount_height,
+                               upper_diameter=spring_mount_diameter + 2 * thin_wall,
+                               lower_diameter=thickness,
+                               rib_length=spring_mount_height + spring_mount_diameter / 2 + thin_wall,
+                               rib_width=2 * thin_wall,
+                               base_height=width) \
+        .rotated_z(spring_rib_angle) \
+        .translated(spring_point[0], spring_point[1], 0)
+    arm += tools.cone(height=pivot_mount_height,
+                      upper_diameter=pivot_mount_diameter + 2 * thin_wall,
+                      lower_diameter=thickness,
+                      base_height=width)
+
+    arm += capsule(0, 0, spring_point[0], spring_point[1], 2 * thin_wall) \
+        .extruded(width + spring_mount_height, symmetrical=False)
+
+    holes = circle(d=pivot_mount_diameter) + \
+        circle(d=6).translated(*bogie_pivot) + \
+        circle(d=spring_mount_diameter).translated(*spring_point)
+    arm -= holes.extruded(float("inf"))
 
     return arm
 
-def spring_placeholder_generator(length): # Fix the geometry
-    mounts = capsule(0, 0, 0, length, 8) - \
-             circle(d=spring_bottom_mount_diameter) - \
-             circle(d=spring_top_mount_diameter).translated_y(length)
-    mounts = mounts.extruded(spring_top_mount_thickness).rotated_x(90)
-    body = cylinder(d=spring_diameter, h=length * 0.7).translated_z(length * 0.55)
-    return mounts + body
+def spring_placeholder_generator(length):
+    spring = (capsule(0, 0, 0, length / 2, spring_top_mount_od) - circle(d=spring_top_mount_id)) \
+        .extruded(spring_top_mount_thickness)
+    spring += (capsule(0, length / 2, 0, length, spring_bottom_mount_od) - circle(d=spring_bottom_mount_id).translated_y(length)) \
+        .extruded(spring_bottom_mount_thickness)
+    spring = spring.rotated_x(90)
+    spring += cylinder(d=spring_diameter, h=length * 2 / 3).translated_z(length * 0.45)
+    return spring
 
 
 inner_road_wheel = road_wheel_generator(wheel_diameter,
@@ -444,7 +472,12 @@ arm = arm_generator(arm_thickness, arm_width,
                     arm_length, spring_arm_length,
                     arm_neutral_angle, arm_up_angle,
                     arm_knee_height,
-                    arm_knee_angle
+                    arm_knee_angle,
+                    parameters.shoulder_screw_diameter2,
+                    (spring_diameter + spring_top_mount_thickness) / 2 + arm_clearance,
+                    spring_bottom_mount_id,
+                    (spring_diameter - spring_bottom_mount_thickness) / 2 + arm_clearance,
+                    3 * parameters.extrusion_width,
                     ).make_part("suspension_arm", ["3d_print"])
 
 bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
@@ -482,9 +515,9 @@ def suspension_generator(arm_angle, bogie_angle_fraction = None):
         bogie_degrees = low + (high - low) * bogie_angle_fraction
         bogie_degrees = math.degrees(bogie_degrees)
 
-    asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees),
+    asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees).translated_y(arm_width / 2),
                             bogie_assembly.translated_z(-bogie_pivot_z - wheel_diameter / 2).rotated_y(-degrees - bogie_degrees).translated_x(arm_length).rotated_y(degrees),
-                            spring.rotated_y(spring_degrees).translated(spring_anchor_point.x, -20, spring_anchor_point.y)])
+                            spring.rotated_y(spring_degrees).translated(spring_anchor_point.x, -(arm_width + spring_diameter) / 2 - arm_clearance, spring_anchor_point.y)])
 
     return asm
 
