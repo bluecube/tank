@@ -468,17 +468,19 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         arm_clearance,
                         wheel_clearance,
                         ).make_part("bogie", ["3d_print"])
-arm = arm_generator(arm_thickness, arm_width,
-                    arm_length, spring_arm_length,
-                    arm_neutral_angle, arm_up_angle,
-                    arm_knee_height,
-                    arm_knee_angle,
-                    parameters.shoulder_screw_diameter2,
-                    (spring_diameter + spring_top_mount_thickness) / 2 + arm_clearance,
-                    spring_bottom_mount_id,
-                    (spring_diameter - spring_bottom_mount_thickness) / 2 + arm_clearance,
-                    3 * parameters.extrusion_width,
-                    ).make_part("suspension_arm", ["3d_print"])
+arm_right = arm_generator(arm_thickness, arm_width,
+                          arm_length, spring_arm_length,
+                          arm_neutral_angle, arm_up_angle,
+                          arm_knee_height,
+                          arm_knee_angle,
+                          parameters.shoulder_screw_diameter2,
+                          (spring_diameter + spring_top_mount_thickness) / 2 + arm_clearance,
+                          spring_bottom_mount_id,
+                          (spring_diameter - spring_bottom_mount_thickness) / 2 + arm_clearance,
+                          3 * parameters.extrusion_width,
+                          ).make_part("suspension_arm_right", ["3d_print"])
+arm_left = arm_right.shape().mirrored_x().make_part("suspension_arm_left", ["3d_print"])
+
 
 bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
                                    inner_road_wheel.rotated_x(90).translated(bogie_wheel_spacing / 2,
@@ -496,7 +498,7 @@ bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
                                  ).make_part("bogie_assembly")
 
 
-def suspension_generator(arm_angle, bogie_angle_fraction = None):
+def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fraction = None):
     spring_point = get_spring_point(spring_arm_length, arm_up_angle - arm_angle)
 
     v = spring_point - spring_anchor_point
@@ -515,12 +517,26 @@ def suspension_generator(arm_angle, bogie_angle_fraction = None):
         bogie_degrees = low + (high - low) * bogie_angle_fraction
         bogie_degrees = math.degrees(bogie_degrees)
 
-    asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees).translated_y(arm_width / 2),
-                            bogie_assembly.translated_z(-bogie_pivot_z - wheel_diameter / 2).rotated_y(-degrees - bogie_degrees).translated_x(arm_length).rotated_y(degrees),
-                            spring.rotated_y(spring_degrees).translated(spring_anchor_point.x, -(arm_width + spring_diameter) / 2 - arm_clearance, spring_anchor_point.y)])
+    if right:
+        arm = arm_right
+        bogie = bogie_assembly.rotated_z(180)
+        multiplier = -1
+    else:
+        arm = arm_left.rotated_y(180)
+        bogie = bogie_assembly
+        multiplier = 1
+
+    offset_y = arm_width / 2 + spring_diameter / 2 + spring_top_mount_thickness / 2 + arm_clearance
+    offset_y *= -multiplier
+
+    asm = codecad.Assembly([arm.rotated_x(90).rotated_y(degrees).translated_y(offset_y - multiplier * arm_width / 2),
+                            bogie.translated_z(-bogie_pivot_z - wheel_diameter / 2).rotated_y(-degrees - bogie_degrees).translated_x(arm_length).rotated_y(degrees).translated_y(offset_y),
+                            spring.rotated_y(spring_degrees).translated(spring_anchor_point.x, offset_y + multiplier * ((arm_width + spring_diameter) / 2 + arm_clearance), spring_anchor_point.y)])
 
     return asm
 
+suspension_assembly_left = suspension_generator(False).make_part("suspension_assembly_left")
+suspension_assembly_right = suspension_generator(True).make_part("suspension_assembly_right")
 
 if __name__ == "__main__":
     def p(name, f=lambda x: x):
@@ -536,12 +552,8 @@ if __name__ == "__main__":
     #plot_wheel_forces(params)
     #codecad.commandline_render(suspension_generator(arm_neutral_angle, 0), 0.1)
 
-    s1 = suspension_generator(arm_down_angle, 0).make_part("down_suspension")
-    s2 = suspension_generator(arm_neutral_angle, 0).make_part("neutral_suspension")
-    s3 = suspension_generator(arm_up_angle, 0).make_part("up_suspension")
-
-    o = codecad.Assembly([s1.translated_x(-100),
-                          s2,
-                          s3.translated_x(100)])
+    o = codecad.Assembly([suspension_assembly_left.translated_x(-suspension_spacing),
+                          suspension_assembly_right,
+                          suspension_assembly_left.translated_x(suspension_spacing)]).make_part("x")
 
     codecad.commandline_render(o, 0.1)
