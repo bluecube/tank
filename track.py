@@ -34,11 +34,7 @@ def track_segment_generator(thickness, length, width, connector_width,
                             clearance):
 
     between_centers = length - thickness
-    base = rectangle(width, length)
-    connector_gap = rectangle(connector_width, 2 * thickness).offset(clearance / 2)
-    base -= connector_gap.translated_y(length / 2)
-    base -= connector_gap.translated_y(-length / 2)
-    segment = base.extruded(thickness)
+    segment = rectangle(width, length).extruded(thickness)
 
     # Round the sides to allow positive and negative bending
     c = math.cos(math.radians(negative_bend_angle))
@@ -52,7 +48,7 @@ def track_segment_generator(thickness, length, width, connector_width,
     cut += cut.mirrored_y()
     segment -= cut.extruded(float("inf")).rotated_y(-90)
 
-    guide_length = length - 2 * (thickness + clearance)
+    #guide_length = length - 2 * (thickness + clearance)
 
     # Make track guide
     guide = cylinder(r=guide_clearance_radius, h=guide_width).rotated_y(90)
@@ -69,12 +65,24 @@ def track_segment_generator(thickness, length, width, connector_width,
                           guide_side.rotated_z(-90)])
     segment += guide
 
-    # Make traction pattern
-    #grooves = codecad.shapes.unsafe.Repetition(cylinder(r=groove_depth, h=float("inf"))
-    #                                           .rotated_y(90)
-    #                                           .translated_z(-thickness / 2),
-    #                                           (None, length / 3, None)).translated_y(length / 6)
-    #segment -= grooves
+    connector_gap = polygon2d([(0, 0), (0, -thickness), (thickness, thickness)]) \
+        .offset(thickness * 1.1 / 2) \
+        .extruded(connector_width) \
+        .offset(clearance / 2) \
+        .rotated_x(90) \
+        .rotated_z(90) \
+        .translated_y(between_centers / 2 - clearance / 2)
+    segment -= connector_gap
+    segment -= connector_gap.rotated_z(180)
+
+    groove = cylinder(d=1, h=width, symmetrical=False).rotated_y(90)
+
+    groove = groove.rotated_z(-30)#.translated_x(0.3 * width)
+
+    groove_spacing = (between_centers + thickness + clearance) / 3
+    grooves = union([groove.translated_y(i * groove_spacing) for i in range(-1, 3)])
+    grooves += grooves.rotated_y(180)
+    segment -= grooves.translated_z(-thickness/2)
 
     return segment.rotated_z(90).translated_z(thickness / 2)
 
@@ -114,7 +122,7 @@ def track_row(n):
         parts.append(conn.translated_y((width - connector_width - clearance) / 2))
         parts.append(conn.translated_y(-(width - connector_width - clearance) / 2))
 
-    return codecad.Assembly(parts).make_part("track_assembly")
+    return codecad.Assembly(parts)#.make_part("track_assembly")
 
 if __name__ == "__main__":
-    codecad.commandline_render(track_row(2).rotated_x(90), 0.1)
+    codecad.commandline_render(track_row(2), 0.05)
