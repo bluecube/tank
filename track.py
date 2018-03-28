@@ -11,7 +11,7 @@ nail_diameter = 1.25
 nail_length = 16
 
 clearance = 1
-segment_pin_clearance = 0.15
+segment_pin_clearance = 0.05
 connector_pin_clearance = 0.25
 
 wall = 3 * parameters.extrusion_width
