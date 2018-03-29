@@ -29,17 +29,19 @@ groove_height = 1
 connector_width = 5
 connector_length = 5 # Length between centers
 
-segment_width = width - 2 * (clearance + connector_width)
+base_thickness = nail_diameter + segment_pin_clearance + 2 * wall
 connector_thickness = nail_diameter + connector_pin_clearance + 2 * wall
+surface_offset = base_thickness / 2 # How high above the pivot is the surface that wheels contact
+segment_width = width - 2 * (clearance + connector_width)
 extra_foot_height = groove_height
 
 assert suspension.wheel_width <= width + 2 * clearance
 connector_length >= nail_diameter + segment_pin_clearance + 2 * wall + clearance
 
 def track_segment_generator(between_centers, width,
-                            pivot_diameter, wall,
+                            pivot_diameter, base_thickness,
 
-                            connector_width, connector_thickness,
+                            connector_width, connector_thickness, connector_length,
                             extra_foot_height,
                             negative_bend_angle,
 
@@ -47,9 +49,7 @@ def track_segment_generator(between_centers, width,
                             groove_width, groove_height,
                             clearance):
 
-    thickness = pivot_diameter + 2 * wall
-
-    segment = rectangle(width, between_centers + thickness).extruded(thickness + extra_foot_height).translated_z(-extra_foot_height / 2)
+    segment = rectangle(width, between_centers + base_thickness).extruded(base_thickness + extra_foot_height).translated_z(-extra_foot_height / 2)
 
     # Round the sides to allow positive and negative bending
     c = math.cos(math.radians(negative_bend_angle))
@@ -57,7 +57,7 @@ def track_segment_generator(between_centers, width,
     cut = polygon2d([(-0.5 * s, 0.5 * c), (0.5, 0), (1, 0), (1, 1), (-1 - extra_foot_height, 1)]) - \
                     circle(d=1) + \
                     half_plane().translated_y(0.5).rotated(negative_bend_angle)
-    cut = cut.scaled(thickness)
+    cut = cut.scaled(base_thickness)
     cut += circle(d=pivot_diameter)
     cut = cut.translated_y(between_centers / 2)
     cut += cut.mirrored_y()
@@ -69,16 +69,16 @@ def track_segment_generator(between_centers, width,
     guide_side = half_space() \
                  .rotated_x(-guide_side_angle) \
                  .translated_y(-guide_width / 2) \
-                 .translated_z(thickness / 2)
+                 .translated_z(base_thickness / 2)
 
     guide = intersection([guide.translated_y(between_centers / 2),
                           guide.translated_y(-between_centers / 2),
-                          rectangle(guide_width, guide_length).extruded(guide_height + thickness / 2, symmetrical=False),
+                          rectangle(guide_width, guide_length).extruded(guide_height + base_thickness / 2, symmetrical=False),
                           guide_side.rotated_z(90),
                           guide_side.rotated_z(-90)])
     segment += guide
 
-    connector_gap = polygon2d([(0, 0), (0, -thickness), (thickness, thickness)]) \
+    connector_gap = polygon2d([(0, 0), (0, -base_thickness), (base_thickness, base_thickness)]) \
         .offset(connector_thickness / 2 + clearance / 2) \
         .extruded(connector_width) \
         .offset(clearance / 2) \
@@ -94,12 +94,12 @@ def track_segment_generator(between_centers, width,
         .rotated_y(90) \
         .rotated_z(-30)
 
-    groove_spacing = (between_centers + thickness + clearance) / 3
+    groove_spacing = (between_centers + connector_length) / 3
     grooves = union([groove.translated_y(i * groove_spacing) for i in range(-1, 3)])
     grooves += grooves.rotated_y(180)
-    segment -= grooves.translated_z(-thickness/2 - extra_foot_height)
+    segment -= grooves.translated_z(-base_thickness/2 - extra_foot_height)
 
-    return segment.rotated_z(90)#.translated_z(thickness / 2 + extra_foot_height)
+    return segment.rotated_z(90)#.translated_z(base_thickness / 2 + extra_foot_height)
 
 
 def track_connector_generator(between_centers, thickness, width, pivot_diameter, cone_depth, clearance):
@@ -127,9 +127,10 @@ def track_connector_generator(between_centers, thickness, width, pivot_diameter,
 
 
 track_segment = track_segment_generator(segment_length, segment_width,
-                                        nail_diameter + segment_pin_clearance, wall,
+                                        nail_diameter + segment_pin_clearance,
+                                        base_thickness,
 
-                                        connector_width, connector_thickness,
+                                        connector_width, connector_thickness, connector_length,
                                         groove_height, # Foot extra height
                                         negative_bend_angle,
 
@@ -163,4 +164,4 @@ def track_row(n):
     return codecad.Assembly(parts)#.make_part("track_assembly")
 
 if __name__ == "__main__":
-    codecad.commandline_render(track_row(2), 0.05)
+    codecad.commandline_render(track_row(2).shape().rotated_x(30), 0.05)
