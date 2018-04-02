@@ -39,5 +39,3 @@ small_bearing_thickness = 3
 small_bearing_shoulder_size = 2 * extrusion_width
 
 design_weight = 4 # [kg]
-
-drive_sprocket_tooth_count = 8
