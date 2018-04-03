@@ -90,7 +90,7 @@ drive_sprocket = drive_sprocket_generator(drive_sprocket_tooth_count,
                                           (track.width - suspension.wheel_gap) / 2,
                                           (track.width - suspension.wheel_gap) / 2 + track.guide_height * math.sin(math.radians(track.guide_side_angle)),
                                           track.guide_height + track.clearance) \
-    .make_part("drive_sprocket")
+    .make_part("drive_sprocket", ["3d_print"])
 
 if __name__ == "__main__":
     print("drive sprocket working radius", drive_sprocket_pitch_radius)

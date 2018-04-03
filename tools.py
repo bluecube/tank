@@ -30,6 +30,11 @@ def cone_with_rib(height, upper_diameter, lower_diameter, rib_length, rib_width,
         rib(height, upper_diameter / 2, rib_length, rib_width, base_height)
         #rib(height, math.sqrt(upper_diameter**2 - rib_width**2) / 2, rib_length, rib_width, base_height)
 
+def name_only_part(name, attributes=[]):
+    return sphere() \
+        .make_part(name, attributes) \
+        .hidden()
+
 if __name__ == "__main__":
     import codecad
 

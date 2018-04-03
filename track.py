@@ -4,11 +4,13 @@ import itertools
 import codecad
 from codecad.shapes import *
 
+import tools
+import vitamins
 import parameters
 import suspension
 
-nail_diameter = 1.25
-nail_length = 16
+vitamins.nail.diameter = 1.25
+vitamins.nail.length = 16
 
 clearance = 1
 segment_pin_clearance = 0.05
@@ -17,7 +19,7 @@ connector_pin_clearance = 0.25
 wall = 3 * parameters.extrusion_width
 
 segment_length = 10 # Length between centers
-width = 2 * nail_length + 1
+width = 2 * vitamins.nail.length + 1
 guide_height = 6
 guide_length = 7
 guide_width = suspension.wheel_gap - clearance
@@ -29,14 +31,14 @@ groove_height = 1
 connector_width = 5
 connector_length = 5 # Length between centers
 
-base_thickness = nail_diameter + segment_pin_clearance + 2 * wall
-connector_thickness = nail_diameter + connector_pin_clearance + 2 * wall
+base_thickness = vitamins.nail.diameter + segment_pin_clearance + 2 * wall
+connector_thickness = vitamins.nail.diameter + connector_pin_clearance + 2 * wall
 surface_offset = base_thickness / 2 # How high above the pivot is the surface that wheels contact
 segment_width = width - 2 * (clearance + connector_width)
 extra_foot_height = groove_height
 
 assert suspension.wheel_width <= width + 2 * clearance
-connector_length >= nail_diameter + segment_pin_clearance + 2 * wall + clearance
+connector_length >= vitamins.nail.diameter + segment_pin_clearance + 2 * wall + clearance
 
 def track_segment_generator(between_centers, width,
                             pivot_diameter, base_thickness,
@@ -127,7 +129,7 @@ def track_connector_generator(between_centers, thickness, width, pivot_diameter,
 
 
 track_segment = track_segment_generator(segment_length, segment_width,
-                                        nail_diameter + segment_pin_clearance,
+                                        vitamins.nail.diameter + segment_pin_clearance,
                                         base_thickness,
 
                                         connector_width, connector_thickness, connector_length,
@@ -140,14 +142,15 @@ track_segment = track_segment_generator(segment_length, segment_width,
                                         clearance
                                         ).make_part("track_segment", ["3d_print"])
 track_connector = track_connector_generator(connector_length, connector_thickness, connector_width,
-                                            nail_diameter + connector_pin_clearance,
+                                            vitamins.nail.diameter + connector_pin_clearance,
                                             0.4, # Cone depth
                                             clearance
                                             ).make_part("track_connector", ["3d_print"])
 
-def track_row(n):
+def track_row(n, modelled_n=1):
     parts = []
-    for i in range(n):
+
+    for i in range(modelled_n):
         dist = (i - n/2 + 0.5) * (segment_length + connector_length)
 
         conn = track_connector \
@@ -161,7 +164,14 @@ def track_row(n):
         parts.append(conn.translated_y((width - connector_width - clearance) / 2))
         parts.append(conn.translated_y(-(width - connector_width - clearance) / 2))
 
+    hidden_n = n - modelled_n
+
+    parts.extend(track_segment.hidden() for i in range(hidden_n))
+    parts.extend(track_connector.hidden() for i in range(3 * hidden_n))
+    parts.extend(vitamins.nail for i in range(4 * n))
+
     return codecad.Assembly(parts)#.make_part("track_assembly")
+
 
 if __name__ == "__main__":
     codecad.commandline_render(track_row(2).shape().rotated_x(30), 0.05)

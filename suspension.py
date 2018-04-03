@@ -6,6 +6,7 @@ import codecad
 from codecad.shapes import *
 
 import tools
+import vitamins
 import parameters
 
 bogie_count = 6 # Count of bogies on both sides of the vehicle
@@ -32,10 +33,10 @@ pivot_flat_clearance = 0.5
 pivot_round_clearance = 0.15
 
 wheel_diameter = 34
-wheel_width = 25 + parameters.small_screw_head_height # Total width of the wheel pair
+wheel_width = vitamins.small_screw.length + vitamins.small_screw.head_height # Total width of the wheel pair
 
 arm_width = 8
-arm_thickness = parameters.shoulder_screw_diameter2 + 10 * parameters.extrusion_width
+arm_thickness = vitamins.shoulder_screw.diameter2 + 10 * parameters.extrusion_width
 arm_knee_height = 14
 arm_knee_angle = 15
 
@@ -496,62 +497,62 @@ def spring_placeholder_generator(length):
 
 inner_road_wheel = road_wheel_generator(wheel_diameter,
                                         half_wheel_width,
-                                        parameters.small_bearing_id,
+                                        vitamins.small_bearing.id,
                                         wheel_clearance,
-                                        parameters.small_bearing_shoulder_size,
+                                        vitamins.small_bearing.shoulder_size,
                                         o_ring_minor_diameter,
                                         4 * parameters.extrusion_width,
                                         parameters.layer_height,
-                                        parameters.small_screw_nut_s,
-                                        parameters.small_screw_nut_height + parameters.small_screw_diameter / 6,
+                                        vitamins.small_screw.lock_nut.s,
+                                        vitamins.small_screw.lock_nut.height + vitamins.small_screw.diameter / 6,
                                         True
                                         ).make_part("inner_road_wheel", ["3d_print"])
 outer_road_wheel = road_wheel_generator(wheel_diameter,
                                         half_wheel_width,
-                                        parameters.small_bearing_id,
+                                        vitamins.small_bearing.id,
                                         wheel_clearance,
-                                        parameters.small_bearing_shoulder_size,
+                                        vitamins.small_bearing.shoulder_size,
                                         o_ring_minor_diameter,
                                         4 * parameters.extrusion_width,
                                         parameters.layer_height,
-                                        parameters.small_screw_head_diameter,
-                                        parameters.small_screw_head_height,
+                                        vitamins.small_screw.head_diameter,
+                                        vitamins.small_screw.head_height,
                                         False
                                         ).make_part("outer_road_wheel", ["3d_print"])
 bogie = bogie_generator(bogie_wheel_spacing,
                         bogie_width, wheel_width,
-                        parameters.small_bearing_od, parameters.small_bearing_thickness, parameters.small_bearing_shoulder_size,
+                        vitamins.small_bearing.od, vitamins.small_bearing.thickness, vitamins.small_bearing.shoulder_size,
                         4 * parameters.extrusion_width, 6 * parameters.extrusion_width,
                         bogie_pivot_z,
                         wheel_diameter,
                         arm_thickness,
                         arm_width + pivot_flat_clearance,
                         bogie_arm_cutout_angle,
-                        parameters.shoulder_screw_diameter,
-                        parameters.shoulder_screw_diameter2,
-                        parameters.shoulder_screw_length,
-                        parameters.shoulder_screw_screw_length,
-                        parameters.shoulder_screw_head_diameter,
-                        parameters.shoulder_screw_head_height,
-                        parameters.shoulder_screw_nut_height,
-                        parameters.shoulder_screw_nut_s,
+                        vitamins.shoulder_screw.diameter,
+                        vitamins.shoulder_screw.diameter2,
+                        vitamins.shoulder_screw.length,
+                        vitamins.shoulder_screw.screw_length,
+                        vitamins.shoulder_screw.head_diameter,
+                        vitamins.shoulder_screw.head_height,
+                        vitamins.shoulder_screw.lock_nut.height,
+                        vitamins.shoulder_screw.lock_nut.s,
                         arm_knee_height,
                         arm_clearance,
                         wheel_clearance,
                         ).make_part("bogie", ["3d_print"])
-arm_right = arm_generator(arm_thickness, parameters.shoulder_screw_diameter2 + 24 * parameters.extrusion_width, arm_width,
+arm_right = arm_generator(arm_thickness, vitamins.shoulder_screw.diameter2 + 24 * parameters.extrusion_width, arm_width,
                           arm_width - pivot_flat_clearance,
                           arm_length, spring_arm_length,
                           arm_neutral_angle, arm_up_angle,
                           arm_knee_height,
                           arm_knee_angle,
-                          parameters.shoulder_screw_diameter2 + pivot_round_clearance,
+                          vitamins.shoulder_screw.diameter2 + pivot_round_clearance,
                           pivot_guide_length - arm_width + pivot_screw_head_countersink,
-                          parameters.shoulder_screw_head_diameter + pivot_flat_clearance,
+                          vitamins.shoulder_screw.head_diameter + pivot_flat_clearance,
                           pivot_screw_head_countersink,
                           spring_bottom_mount_id,
                           (spring_diameter - spring_bottom_mount_thickness) / 2 + arm_clearance,
-                          parameters.shoulder_screw_diameter2 + pivot_round_clearance,
+                          vitamins.shoulder_screw.diameter2 + pivot_round_clearance,
                           3 * parameters.extrusion_width,
                           6 * parameters.extrusion_width,
                           parameters.layer_height,
@@ -571,7 +572,16 @@ bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
                                                                               wheel_diameter / 2),
                                    outer_road_wheel.rotated_x(-90).translated(-bogie_wheel_spacing / 2,
                                                                               -wheel_width / 2,
-                                                                              wheel_diameter / 2)]
+                                                                              wheel_diameter / 2),
+                                   vitamins.small_bearing,
+                                   vitamins.small_bearing,
+                                   vitamins.small_bearing,
+                                   vitamins.small_bearing,
+                                   vitamins.small_screw,
+                                   vitamins.small_screw,
+                                   vitamins.small_screw.lock_nut,
+                                   vitamins.small_screw.lock_nut,
+                                   ]
                                  ).make_part("bogie_assembly")
 
 
@@ -598,7 +608,7 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
     length = abs(v)
 
     spring_degrees = 90 - math.degrees(math.atan2(v.y, v.x))
-    spring = spring_placeholder_generator(length).make_part("spring", ["vitamins"])
+    spring = spring_placeholder_generator(length).make_part("spring")
 
     degrees = -math.degrees(arm_angle)
 
@@ -634,6 +644,14 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
                                 .translated(spring_anchor_point.x,
                                             multiplier * (spring_anchor_point.z + spring_top_mount_thickness / 2),
                                             spring_anchor_point.y),
+                            vitamins.small_screw,
+                            vitamins.small_screw.lock_nut,
+                            vitamins.large_screw,
+                            vitamins.large_screw.lock_nut,
+                            vitamins.shoulder_screw,
+                            vitamins.shoulder_screw,
+                            vitamins.shoulder_screw.lock_nut,
+                            vitamins.shoulder_screw.lock_nut,
                             ])
 
     return asm
