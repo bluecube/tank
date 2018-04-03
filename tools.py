@@ -30,6 +30,22 @@ def cone_with_rib(height, upper_diameter, lower_diameter, rib_length, rib_width,
         rib(height, upper_diameter / 2, rib_length, rib_width, base_height)
         #rib(height, math.sqrt(upper_diameter**2 - rib_width**2) / 2, rib_length, rib_width, base_height)
 
+def spline(outer_diameter, approx_tooth_size = 2):
+    n = int(math.pi * (outer_diameter - approx_tooth_size / 2) / (2 * approx_tooth_size))
+    tooth_radius = outer_diameter / (2 * math.cos(math.pi / (2 * n)))
+    tooth_size = 2 * tooth_radius * math.sin(math.pi / (2 * n))
+
+    spline = circle(d=outer_diameter)
+    spline -= circle(d=tooth_size).translated_x(tooth_radius)
+    spline = unsafe.CircularRepetition2D(spline, n)
+
+    spline.n = n
+    spline.od = outer_diameter
+    spline.id = 2 * (tooth_radius - tooth_size / 2)
+    spline.tooth_size = tooth_size
+
+    return spline
+
 def name_only_part(name, attributes=[]):
     return sphere() \
         .make_part(name, attributes) \
@@ -37,5 +53,8 @@ def name_only_part(name, attributes=[]):
 
 if __name__ == "__main__":
     import codecad
+    s = spline(10)
 
-    codecad.commandline_render(cone_with_rib(10, 5, 10, 20, 3, 5), 0.1)
+    print(s.n, s.od, s.id, s.tooth_size)
+
+    codecad.commandline_render(s, 0.1)
