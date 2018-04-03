@@ -9,9 +9,6 @@ import vitamins
 import parameters
 import suspension
 
-vitamins.nail.diameter = 1.25
-vitamins.nail.length = 16
-
 clearance = 1
 segment_pin_clearance = 0.05
 connector_pin_clearance = 0.25
