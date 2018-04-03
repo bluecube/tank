@@ -26,17 +26,15 @@ shoulder_screw.head_diameter = 10
 shoulder_screw.head_height = 4.5
 shoulder_screw.lock_nut = large_screw.lock_nut
 
-#TODO: Fill in bearing number
-small_bearing = tools.name_only_part("SMALL_bearing")
+small_bearing = tools.name_only_part("683_ZZ_bearing")
 small_bearing.id = 3
 small_bearing.od = 7
 small_bearing.thickness = 3
 small_bearing.shoulder_size = 2 * parameters.extrusion_width
 
-#TODO: Fill in bearing number
-large_bearing = tools.name_only_part("LARGE_bearing")
+large_bearing = tools.name_only_part("6900_2RS_bearing")
 large_bearing.id = 10
-large_bearing.od = 7
+large_bearing.od = 22
 large_bearing.thickness = 6
 large_bearing.shoulder_size = 2 * parameters.extrusion_width
 
