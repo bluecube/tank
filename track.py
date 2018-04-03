@@ -170,8 +170,9 @@ def track_row(n, modelled_n=1):
     parts.extend(track_connector.hidden() for i in range(3 * hidden_n))
     parts.extend(vitamins.nail for i in range(4 * n))
 
-    return codecad.Assembly(parts)#.make_part("track_assembly")
+    return codecad.assembly("track_assembly", parts)
 
+track_assembly = track_row(120, 2)
 
 if __name__ == "__main__":
-    codecad.commandline_render(track_row(2).shape().rotated_x(30), 0.05)
+    codecad.commandline_render(track_assembly, 0.05)

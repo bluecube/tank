@@ -560,7 +560,8 @@ arm_right = arm_generator(arm_thickness, vitamins.shoulder_screw.diameter2 + 24 
 arm_left = arm_right.shape().mirrored_x().make_part("suspension_arm_left", ["3d_print"])
 
 
-bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
+bogie_assembly = codecad.assembly("bogie_assembly",
+                                  [bogie.translated_z(wheel_diameter / 2),
                                    inner_road_wheel.rotated_x(90).translated(bogie_wheel_spacing / 2,
                                                                              wheel_width / 2,
                                                                              wheel_diameter / 2),
@@ -582,7 +583,7 @@ bogie_assembly = codecad.Assembly([bogie.translated_z(wheel_diameter / 2),
                                    vitamins.small_screw.lock_nut,
                                    vitamins.small_screw.lock_nut,
                                    ]
-                                 ).make_part("bogie_assembly")
+                                 )
 
 
 # Y offset of a right suspension arm base in an assembly.
@@ -629,7 +630,8 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
         bogie = bogie_assembly
         multiplier = -1
 
-    asm = codecad.Assembly([arm \
+    asm = codecad.assembly("suspension_assembly_" + ("right" if right else "left"),
+                           [arm \
                                 .rotated_x(90) \
                                 .rotated_y(degrees) \
                                 .translated_y(multiplier * arm_base_offset),
@@ -657,8 +659,8 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
     return asm
 
 
-suspension_assembly_left = suspension_generator(False).make_part("suspension_assembly_left")
-suspension_assembly_right = suspension_generator(True).make_part("suspension_assembly_right")
+suspension_assembly_left = suspension_generator(False)
+suspension_assembly_right = suspension_generator(True)
 
 if __name__ == "__main__":
     def p(name, f=lambda x: x):
@@ -674,8 +676,10 @@ if __name__ == "__main__":
     #plot_wheel_forces(params)
     #codecad.commandline_render(suspension_generator(arm_neutral_angle, 0), 0.1)
 
-    o = codecad.Assembly([suspension_assembly_left.translated_x(-suspension_spacing),
+    o = codecad.assembly("suspension_preview",
+                         [suspension_assembly_left.translated_x(-suspension_spacing),
                           suspension_assembly_right,
-                          suspension_assembly_left.translated_x(suspension_spacing)]).make_part("x")
+                          suspension_assembly_left.translated_x(suspension_spacing)])
+    o = suspension_assembly_left
 
     codecad.commandline_render(o, 0.1)
