@@ -23,8 +23,6 @@ spring_bottom_mount_thickness = 6.5
 spring_preload_force = 0.95 # [kg]
 spring_full_compression_force = 4.5 # [kg]
 
-o_ring_minor_diameter = 2
-
 suspension_spacing = 120
 
 arm_clearance = 1
@@ -500,7 +498,7 @@ inner_road_wheel = road_wheel_generator(wheel_diameter,
                                         vitamins.small_bearing.id,
                                         wheel_clearance,
                                         vitamins.small_bearing.shoulder_size,
-                                        o_ring_minor_diameter,
+                                        vitamins.o_ring.minor_diameter,
                                         4 * parameters.extrusion_width,
                                         parameters.layer_height,
                                         vitamins.small_screw.lock_nut.s,
@@ -512,7 +510,7 @@ outer_road_wheel = road_wheel_generator(wheel_diameter,
                                         vitamins.small_bearing.id,
                                         wheel_clearance,
                                         vitamins.small_bearing.shoulder_size,
-                                        o_ring_minor_diameter,
+                                        vitamins.o_ring.minor_diameter,
                                         4 * parameters.extrusion_width,
                                         parameters.layer_height,
                                         vitamins.small_screw.head_diameter,
@@ -573,16 +571,10 @@ bogie_assembly = codecad.assembly("bogie_assembly",
                                                                               wheel_diameter / 2),
                                    outer_road_wheel.rotated_x(-90).translated(-bogie_wheel_spacing / 2,
                                                                               -wheel_width / 2,
-                                                                              wheel_diameter / 2),
-                                   vitamins.small_bearing,
-                                   vitamins.small_bearing,
-                                   vitamins.small_bearing,
-                                   vitamins.small_bearing,
-                                   vitamins.small_screw,
-                                   vitamins.small_screw,
-                                   vitamins.small_screw.lock_nut,
-                                   vitamins.small_screw.lock_nut,
-                                   ]
+                                                                              wheel_diameter / 2)] +
+                                   [vitamins.small_bearing] * 4 +
+                                   [vitamins.small_screw, vitamins.small_screw.lock_nut] * 2 +
+                                   [vitamins.o_ring] * 8
                                  )
 
 

@@ -41,3 +41,6 @@ large_bearing.shoulder_size = 2 * parameters.extrusion_width
 nail = tools.name_only_part("1.25x16_nail")
 nail.diameter = 1.25
 nail.length = 16
+
+o_ring = tools.name_only_part("30x2_o_ring")
+o_ring.minor_diameter = 2
