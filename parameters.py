@@ -11,5 +11,6 @@ layer_height = 0.2
 thin_wall = 2 * extrusion_width
 thick_wall = 4 * extrusion_width
 overhang_angle = 45 # [deg] How steep overhanging walls we are willing to print (90 is ceiling)
+overhang_hole_blinding = layer_height
 
 design_weight = 4 # [kg]

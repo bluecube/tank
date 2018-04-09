@@ -8,7 +8,7 @@ layout = codecad.assembly("tank_layout_test_assembly",
     suspension.suspension_assembly_left.hidden(),
     suspension.suspension_assembly_left.translated_x(suspension.suspension_spacing).hidden(),
     suspension.suspension_assembly_left.translated_x(2 * suspension.suspension_spacing),
-    transmission.drive_sprocket.rotated_x(90).translated_x(2 * suspension.suspension_spacing + 145)
+    transmission.drive_sprocket_assembly.rotated_x(-90).translated_x(2 * suspension.suspension_spacing + 145)
     ])
 
 if __name__ == "__main__":

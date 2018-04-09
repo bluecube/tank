@@ -6,10 +6,16 @@ small_screw.diameter = 3
 small_screw.length = 25
 small_screw.head_diameter = 5.5
 small_screw.head_height = 3
-
 small_screw.lock_nut = tools.name_only_part("M3_lock_nut")
 small_screw.lock_nut.height = 4
 small_screw.lock_nut.s = 5.5 # Nut size across the flats
+
+long_screw = tools.name_only_part("M3x35_socket_head_screw")
+long_screw.diameter = 3
+long_screw.length = 35
+long_screw.head_diameter = 5.5
+long_screw.head_height = 3
+long_screw.lock_nut = small_screw.lock_nut
 
 large_screw = tools.name_only_part("M5x20_socket_head_screw")
 large_screw.diameter = 5
@@ -36,7 +42,7 @@ large_bearing = tools.name_only_part("6900_2RS_bearing")
 large_bearing.id = 10
 large_bearing.od = 22
 large_bearing.thickness = 6
-large_bearing.shoulder_size = 2 * parameters.extrusion_width
+large_bearing.shoulder_size = 4 * parameters.extrusion_width
 
 nail = tools.name_only_part("1.25x16_nail")
 nail.diameter = 1.25
