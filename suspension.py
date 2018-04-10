@@ -27,8 +27,10 @@ suspension_spacing = 120
 
 arm_clearance = 1
 wheel_clearance = 2
-pivot_flat_clearance = 0.5
-pivot_round_clearance = 0.15
+pivot_flat_clearance = 0.15
+pivot_round_clearance = 0.1
+
+road_wheel_screw = vitamins.small_screw # Screw used as an axle for the road wheel
 
 wheel_diameter = 34
 wheel_width = vitamins.small_screw.length + vitamins.small_screw.head_height # Total width of the wheel pair
@@ -257,7 +259,7 @@ def road_wheel_generator(diameter, width, axle_diameter,
 
     return wheel
 
-def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
+def bogie_generator(wheel_spacing, lower_thickness, max_upper_thickness,
                     bearing_diameter, bearing_thickness, bearing_shoulder_size,
                     thin_wall, thick_wall,
                     pivot_z,
@@ -265,24 +267,19 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
                     arm_thickness,
                     arm_cutout_thickness,
                     arm_cutout_angle,
-                    shoulder_screw_diameter,
-                    shoulder_screw_diameter2,
-                    shoulder_screw_length,
-                    shoulder_screw_screw_length,
-                    shoulder_screw_head_diameter,
-                    shoulder_screw_head_height,
-                    shoulder_screw_nut_height,
-                    shoulder_screw_nut_s,
+                    shoulder_screw,
                     arm_knee_height,
                     arm_clearance,
                     weel_clearance):
 
     assert arm_cutout_angle < 180
 
+    upper_thickness = min(max_upper_thickness, shoulder_screw.length + shoulder_screw.head_height)
+
     bearing_radius = bearing_diameter / 2
     bearing_shoulder_radius = bearing_radius - bearing_shoulder_size
-    nut_outer_diameter = shoulder_screw_nut_s * 2 / math.sqrt(3)
-    pivot_protected_diameter = max(shoulder_screw_diameter2, nut_outer_diameter)
+    nut_outer_diameter = shoulder_screw.lock_nut.s * 2 / math.sqrt(3)
+    pivot_protected_diameter = max(shoulder_screw.diameter2, nut_outer_diameter)
     pivot_end_diameter = pivot_protected_diameter + 2 * thick_wall
     pivot_protected_diameter += 2 * thin_wall
     pivot_to_wheel_distance = math.hypot(wheel_spacing / 2, pivot_z)
@@ -307,19 +304,19 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .translated_z(pivot_z)
 
     cutout_tmp_point = (wheel_spacing * math.sin(math.radians(arm_cutout_angle / 2)), wheel_spacing * math.cos(math.radians(arm_cutout_angle / 2)))
-    screw_head_plane_y = -upper_thickness / 2 + shoulder_screw_head_height
-    nut_plane_y = screw_head_plane_y + shoulder_screw_length - shoulder_screw_nut_height - thin_wall
+    screw_head_plane_y = -upper_thickness / 2 + shoulder_screw.head_height
+    nut_plane_y = screw_head_plane_y + shoulder_screw.length - shoulder_screw.lock_nut.height - thin_wall
 
     # Screw head
-    bogie -= cylinder(d=shoulder_screw_head_diameter, h=upper_thickness, symmetrical=False) \
+    bogie -= cylinder(d=shoulder_screw.head_diameter, h=upper_thickness, symmetrical=False) \
         .rotated_x(90) \
         .translated(0, screw_head_plane_y, pivot_z)
     # Smooth part
-    bogie -= cylinder(d=shoulder_screw_diameter2, h=2 * (shoulder_screw_length - shoulder_screw_screw_length)) \
+    bogie -= cylinder(d=shoulder_screw.diameter2, h=2 * (shoulder_screw.length - shoulder_screw.screw_length)) \
         .rotated_x(90) \
         .translated(0, screw_head_plane_y, pivot_z)
     # Screw part
-    bogie -= cylinder(d=shoulder_screw_diameter, h=float("inf")) \
+    bogie -= cylinder(d=shoulder_screw.diameter, h=float("inf")) \
         .rotated_x(90) \
         .translated_z(pivot_z)
     # Nut
@@ -336,7 +333,7 @@ def bogie_generator(wheel_spacing, lower_thickness, upper_thickness,
         .offset(arm_thickness / 2)
     cutout += circle(d=arm_thickness + 2 * arm_clearance)
     bogie -= cutout \
-        .extruded(lower_thickness) \
+        .extruded(arm_cutout_thickness) \
         .rotated_x(90) \
         .translated_z(pivot_z)
 
@@ -501,8 +498,8 @@ inner_road_wheel = road_wheel_generator(wheel_diameter,
                                         vitamins.o_ring.minor_diameter,
                                         4 * parameters.extrusion_width,
                                         parameters.layer_height,
-                                        vitamins.small_screw.lock_nut.s,
-                                        vitamins.small_screw.lock_nut.height + vitamins.small_screw.diameter / 6,
+                                        road_wheel_screw.lock_nut.s,
+                                        road_wheel_screw.lock_nut.height + road_wheel_screw.diameter / 6,
                                         True
                                         ).make_part("inner_road_wheel", ["3d_print"])
 outer_road_wheel = road_wheel_generator(wheel_diameter,
@@ -513,8 +510,8 @@ outer_road_wheel = road_wheel_generator(wheel_diameter,
                                         vitamins.o_ring.minor_diameter,
                                         4 * parameters.extrusion_width,
                                         parameters.layer_height,
-                                        vitamins.small_screw.head_diameter,
-                                        vitamins.small_screw.head_height,
+                                        road_wheel_screw.head_diameter,
+                                        road_wheel_screw.head_height,
                                         False
                                         ).make_part("outer_road_wheel", ["3d_print"])
 bogie = bogie_generator(bogie_wheel_spacing,
@@ -526,14 +523,7 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         arm_thickness,
                         arm_width + pivot_flat_clearance,
                         bogie_arm_cutout_angle,
-                        vitamins.shoulder_screw.diameter,
-                        vitamins.shoulder_screw.diameter2,
-                        vitamins.shoulder_screw.length,
-                        vitamins.shoulder_screw.screw_length,
-                        vitamins.shoulder_screw.head_diameter,
-                        vitamins.shoulder_screw.head_height,
-                        vitamins.shoulder_screw.lock_nut.height,
-                        vitamins.shoulder_screw.lock_nut.s,
+                        vitamins.shoulder_screw,
                         arm_knee_height,
                         arm_clearance,
                         wheel_clearance,
@@ -573,7 +563,7 @@ bogie_assembly = codecad.assembly("bogie_assembly",
                                                                               -wheel_width / 2,
                                                                               wheel_diameter / 2)] +
                                    [vitamins.small_bearing] * 4 +
-                                   [vitamins.small_screw, vitamins.small_screw.lock_nut] * 2 +
+                                   [road_wheel_screw, road_wheel_screw.lock_nut] * 2 +
                                    [vitamins.o_ring] * 8
                                  )
 
@@ -638,8 +628,8 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
                                 .translated(spring_anchor_point.x,
                                             multiplier * (spring_anchor_point.z + spring_top_mount_thickness / 2),
                                             spring_anchor_point.y),
-                            vitamins.small_screw,
-                            vitamins.small_screw.lock_nut,
+                            road_wheel_screw,
+                            road_wheel_screw.lock_nut,
                             vitamins.large_screw,
                             vitamins.large_screw.lock_nut,
                             vitamins.shoulder_screw,
