@@ -11,18 +11,6 @@ import parameters
 
 bogie_count = 6 # Count of bogies on both sides of the vehicle
 
-spring_length = 62 # Center to center, relaxed
-spring_travel = 11
-spring_diameter = 17.1
-spring_top_mount_id = 5
-spring_top_mount_od = 8.5
-spring_top_mount_thickness = 3.8
-spring_bottom_mount_id = 3
-spring_bottom_mount_od = 9
-spring_bottom_mount_thickness = 6.5
-spring_preload_force = 0.95 # [kg]
-spring_full_compression_force = 4.5 # [kg]
-
 suspension_spacing = 120
 
 arm_clearance = 1
@@ -71,12 +59,12 @@ def get_spring_anchor_point(spring_arm_length):
     """ Return the spring anchor point coordinates in 2D relative to arm pivot as codecad Vector.
     Spring is placed to be at right angle to the arm at full compression. """
     return get_spring_point(spring_arm_length, 0) + \
-        codecad.util.Vector(-math.sin(spring_up_angle), math.cos(spring_up_angle)) * (spring_length - spring_travel)
+        codecad.util.Vector(-math.sin(spring_up_angle), math.cos(spring_up_angle)) * (vitamins.spring.length - vitamins.spring.travel)
 
 def get_travel_angle(spring_arm_length, spring_anchor_point):
     """ Calculate travel angle of the suspension arm based on spring length.
     Uses spring anchor point placement from get_spring_anchor_point. """
-    spring_compressed_length = spring_length - spring_travel
+    spring_compressed_length = vitamins.spring.length - vitamins.spring.travel
 
     if spring_arm_length == 0:
         return 0
@@ -84,7 +72,7 @@ def get_travel_angle(spring_arm_length, spring_anchor_point):
     spring_anchor_distance = abs(spring_anchor_point)
     compressed_anchor_angle = math.atan(spring_compressed_length / spring_arm_length)
 
-    tmp = (spring_arm_length**2 + spring_anchor_distance**2 - spring_length**2) / \
+    tmp = (spring_arm_length**2 + spring_anchor_distance**2 - vitamins.spring.length**2) / \
           (2 * spring_arm_length * spring_anchor_distance)
     return math.acos(tmp) - compressed_anchor_angle
 
@@ -98,10 +86,10 @@ def spring_arm_length_equation(spring_arm_length):
                                                         spring_anchor_point,
                                                         spring_down_point)
 
-    return spring_axis_to_pivot_point - (arm_thickness / 2 + spring_diameter / 2 + arm_clearance)
+    return spring_axis_to_pivot_point - (arm_thickness / 2 + vitamins.spring.diameter / 2 + arm_clearance)
 
 spring_up_angle = -math.pi / 2
-spring_arm_length = scipy.optimize.brentq(spring_arm_length_equation, 0, arm_thickness + spring_diameter)
+spring_arm_length = scipy.optimize.brentq(spring_arm_length_equation, 0, arm_thickness + vitamins.spring.diameter)
 spring_anchor_point = get_spring_anchor_point(spring_arm_length)
 travel_angle = get_travel_angle(spring_arm_length, spring_anchor_point)
 
@@ -115,8 +103,7 @@ def get_wheel_force(arm_length, up_angle, angle):
     """ Return residual force on a group of wheels. """
     spring_point = get_spring_point(spring_arm_length, up_angle - angle)
     length = abs(spring_point - spring_anchor_point)
-    spring_force = spring_preload_force + \
-        (spring_full_compression_force - spring_preload_force) * (spring_length - length) / spring_travel
+    spring_force = vitamins.spring.force(length)
 
     torque = spring_force * point_to_line_distance(codecad.util.Vector(0, 0),
                                                    spring_anchor_point,
@@ -155,7 +142,7 @@ def bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y):
     dist_left = point_to_line_distance(left_wheel_position, spring_up_point, spring_anchor_point)
     dist_right = abs(bogie_pivot_up_point - (spring_down_point + codecad.util.Vector(suspension_spacing, 0)))
 
-    ret1 = dist_left - wheel_diameter / 2 - spring_diameter / 2 - wheel_clearance
+    ret1 = dist_left - wheel_diameter / 2 - vitamins.spring.diameter / 2 - wheel_clearance
     #ret2 = dist_right - math.hypot(bogie_wheel_spacing / 2, bogie_pivot_z) - wheel_diameter / 2 - arm_thickness / 2 - wheel_clearance
 
     return ret1
@@ -190,7 +177,7 @@ def arm_length_equation(arm_length):
     return ret
 
 arm_length = scipy.optimize.brentq(arm_length_equation,
-                                   spring_length / 2, 3 * spring_length)
+                                   vitamins.spring.length / 2, 3 * vitamins.spring.length)
 bogie_pivot_up_y = get_optimized_bogie_pivot_up_y(arm_length)
 
 arm_up_angle = get_arm_angle(arm_length, bogie_pivot_up_y)
@@ -201,7 +188,7 @@ arm_neutral_angle = get_arm_angle(arm_length,
 
 assert arm_down_angle > -math.pi / 2
 assert suspension_travel >= suspension_min_travel
-assert arm_length > spring_length - spring_travel
+assert arm_length > vitamins.spring.length - vitamins.spring.travel
 assert arm_up_angle - arm_neutral_angle < 2 * bogie_swing_angle
 assert arm_neutral_angle - arm_down_angle < 2 * bogie_swing_angle
 assert abs(bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y)) < wheel_clearance / 100, "Check that the bogie clearances are met"
@@ -377,7 +364,7 @@ def spring_cutout_generator(spring_angle, r0, r1, chamfer0, chamfer1=0):
     r0 += arm_clearance
     r1 -= arm_clearance
 
-    spring_r = spring_diameter / 2 + arm_clearance
+    spring_r = vitamins.spring.diameter / 2 + arm_clearance
     cos = math.cos(math.radians(spring_angle)) * 2 * r1
     sin = math.sin(math.radians(spring_angle)) * 2 * r1
 
@@ -398,16 +385,16 @@ def spring_cutout_generator(spring_angle, r0, r1, chamfer0, chamfer1=0):
         polygon2d(points2).offset(r0 - chamfer0).extruded(float("inf"))
 
 
-    chamfer_poly = polygon2d([(r0 - chamfer0, 2 * spring_diameter),
+    chamfer_poly = polygon2d([(r0 - chamfer0, 2 * vitamins.spring.diameter),
                               (r0 - chamfer0, 0),
                               (r0, -spring_r),
                               (r1, -spring_r),
                               (r1 + chamfer1, 0),
-                              (r1 + chamfer1, 2 * spring_diameter)])
+                              (r1 + chamfer1, 2 * vitamins.spring.diameter)])
     mask = chamfer_poly.revolved().rotated_x(90)
     mask &= p.extruded(float("inf"))
-    mask += chamfer_poly.extruded(spring_diameter).translated_z(0.95 * spring_diameter / 2).rotated_x(90)
-    mask += chamfer_poly.extruded(spring_diameter).translated_z(-0.95 * spring_diameter / 2).rotated_x(90).rotated_z(spring_angle)
+    mask += chamfer_poly.extruded(vitamins.spring.diameter).translated_z(0.95 * vitamins.spring.diameter / 2).rotated_x(90)
+    mask += chamfer_poly.extruded(vitamins.spring.diameter).translated_z(-0.95 * vitamins.spring.diameter / 2).rotated_x(90).rotated_z(spring_angle)
 
     return s & mask
 
@@ -461,9 +448,9 @@ def arm_generator(thickness, pivot_thickness, width,
     arm -= spring_cutout_generator(90 + rel_spring_down_angle,
                                    spring_cutout_r0,
                                    2 * arm_length,
-                                   (spring_diameter / 2 + arm_clearance)) \
+                                   (vitamins.spring.diameter / 2 + arm_clearance)) \
         .rotated_z(-90) \
-        .translated(spring_point[0], spring_point[1], width + spring_diameter / 2 + arm_clearance)
+        .translated(spring_point[0], spring_point[1], width + vitamins.spring.diameter / 2 + arm_clearance)
 
     holes = circle(d=pivot_mount_diameter) + \
         circle(d=bogie_pivot_mount_diameter).translated(*bogie_pivot) + \
@@ -479,16 +466,6 @@ def arm_generator(thickness, pivot_thickness, width,
                         symmetrical=False).translated_z(pivot_mount_screw_head_countersink)
 
     return arm
-
-def spring_placeholder_generator(length):
-    spring = (capsule(0, 0, 0, length / 2, spring_top_mount_od) - circle(d=spring_top_mount_id)) \
-        .extruded(spring_top_mount_thickness)
-    spring += (capsule(0, length / 2, 0, length, spring_bottom_mount_od) - circle(d=spring_bottom_mount_id).translated_y(length)) \
-        .extruded(spring_bottom_mount_thickness)
-    spring = spring.rotated_x(90)
-    spring += cylinder(d=spring_diameter, h=length * 2 / 3).translated_z(length * 0.45)
-    return spring
-
 
 inner_road_wheel = road_wheel_generator(wheel_diameter,
                                         half_wheel_width,
@@ -538,8 +515,8 @@ arm_right = arm_generator(arm_thickness, vitamins.shoulder_screw.diameter2 + 24 
                           pivot_guide_length - arm_width + pivot_screw_head_countersink,
                           vitamins.shoulder_screw.head_diameter + pivot_flat_clearance,
                           pivot_screw_head_countersink,
-                          spring_bottom_mount_id,
-                          (spring_diameter - spring_bottom_mount_thickness) / 2 + arm_clearance,
+                          vitamins.spring.bottom_mount_id,
+                          (vitamins.spring.diameter - vitamins.spring.bottom_mount_thickness) / 2 + arm_clearance,
                           vitamins.shoulder_screw.diameter2 + pivot_round_clearance,
                           3 * parameters.extrusion_width,
                           6 * parameters.extrusion_width,
@@ -581,7 +558,7 @@ track_offset = codecad.util.Vector(arm_length * math.cos(arm_neutral_angle),
 # Position of the matching surface for spring anchor point on the right side
 # This one is rotated in print orientation!
 spring_anchor_point = codecad.util.Vector(spring_anchor_point.x, spring_anchor_point.y,
-                                          arm_base_offset - (arm_width + arm_clearance + spring_diameter / 2 + spring_top_mount_thickness / 2))
+                                          arm_base_offset - (arm_width + arm_clearance + vitamins.spring.diameter / 2 + vitamins.spring.top_mount_thickness / 2))
 
 
 def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fraction = None):
@@ -591,7 +568,7 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
     length = abs(v)
 
     spring_degrees = 90 - math.degrees(math.atan2(v.y, v.x))
-    spring = spring_placeholder_generator(length).make_part("spring")
+    spring = vitamins.spring(length)
 
     degrees = -math.degrees(arm_angle)
 
@@ -626,7 +603,7 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
                             spring \
                                 .rotated_y(spring_degrees) \
                                 .translated(spring_anchor_point.x,
-                                            multiplier * (spring_anchor_point.z + spring_top_mount_thickness / 2),
+                                            multiplier * (spring_anchor_point.z + vitamins.spring.top_mount_thickness / 2),
                                             spring_anchor_point.y),
                             road_wheel_screw,
                             road_wheel_screw.lock_nut,

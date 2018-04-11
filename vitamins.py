@@ -1,3 +1,5 @@
+from codecad.shapes import *
+
 import parameters
 import tools
 
@@ -50,3 +52,30 @@ nail.length = 16
 
 o_ring = tools.name_only_part("30x2_o_ring")
 o_ring.minor_diameter = 2
+
+def spring(length):
+    """ Return a model representing a spring extended to `length` (hole to hole) """
+
+    assert length <= spring.length
+    assert length >= spring.length - spring.travel
+
+    o = (capsule(0, 0, 0, length / 2, spring.top_mount_od) - circle(d=spring.top_mount_id)) \
+        .extruded(spring.top_mount_thickness)
+    o += (capsule(0, length / 2, 0, length, spring.bottom_mount_od) - circle(d=spring.bottom_mount_id).translated_y(length)) \
+        .extruded(spring.bottom_mount_thickness)
+    o = o.rotated_x(90)
+    o += cylinder(d=spring.diameter, h=length * 2 / 3).translated_z(length * 0.45)
+
+    return o.make_part("60mm_shock_absorber")
+spring.length = 62 # Center to center, relaxed
+spring.travel = 11
+spring.diameter = 17.1
+spring.top_mount_id = 5
+spring.top_mount_od = 8.5
+spring.top_mount_thickness = 3.8
+spring.bottom_mount_id = 3
+spring.bottom_mount_od = 9
+spring.bottom_mount_thickness = 6.5
+spring.preload_force = 0.95 # [kg]
+spring.full_compression_force = 4.5 # [kg]
+spring.force = lambda length: spring.preload_force + (spring.full_compression_force - spring.preload_force) * (spring.length - length) / spring.travel
