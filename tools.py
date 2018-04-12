@@ -57,4 +57,4 @@ if __name__ == "__main__":
 
     print(s.n, s.od, s.id, s.tooth_size)
 
-    codecad.commandline_render(s, 0.1)
+    codecad.commandline_render(s)

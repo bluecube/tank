@@ -633,7 +633,6 @@ if __name__ == "__main__":
     p("suspension_travel")
 
     #plot_wheel_forces(params)
-    #codecad.commandline_render(suspension_generator(arm_neutral_angle, 0), 0.1)
 
     o = codecad.assembly("suspension_preview",
                          [suspension_assembly_left.translated_x(-suspension_spacing),
@@ -641,4 +640,4 @@ if __name__ == "__main__":
                           suspension_assembly_left.translated_x(suspension_spacing)])
     o = suspension_assembly_left
 
-    codecad.commandline_render(o, 0.1)
+    codecad.commandline_render(o)

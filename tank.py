@@ -12,5 +12,5 @@ layout = codecad.assembly("tank_layout_test_assembly",
     ])
 
 if __name__ == "__main__":
-    codecad.commandline_render(layout, 0.1)
+    codecad.commandline_render(layout)
 

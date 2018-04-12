@@ -172,4 +172,4 @@ def track_row(n, modelled_n=1):
 track_assembly = track_row(120, 2)
 
 if __name__ == "__main__":
-    codecad.commandline_render(track_assembly, 0.05)
+    codecad.commandline_render(track_assembly)

@@ -229,4 +229,4 @@ drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
 if __name__ == "__main__":
     print("pitch radius", pitch_radius)
 
-    codecad.commandline_render(drive_sprocket_assembly, 0.1)
+    codecad.commandline_render(drive_sprocket_assembly)

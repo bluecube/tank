@@ -92,4 +92,4 @@ if __name__ == "__main__":
           ", ".join("{}:{}".format(*teeth) for teeth in transmission_steps),
           "({:.1f}:1) -> {:.1f}m/s, {:.1f}km/h".format(ratio, speed/1000, 3.6 * speed / 1000))
 
-    codecad.commandline_render((shaft2_assembly.shape().rotated_y(-90) & half_space()).rotated_z(-30).rotated_x(15), 0.1)
+    codecad.commandline_render((shaft2_assembly.shape().rotated_y(-90) & half_space()).rotated_z(-30).rotated_x(15))

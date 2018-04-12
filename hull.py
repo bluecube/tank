@@ -96,4 +96,4 @@ test_side = side_generator(80, 35, side_thickness,
                            ).make_part("test_side")
 
 if __name__ == "__main__":
-    codecad.commandline_render(test_side.rotated_x(90), 0.1)
+    codecad.commandline_render(test_side.rotated_x(90))
