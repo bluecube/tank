@@ -102,11 +102,11 @@ spring_down_point = get_spring_point(spring_arm_length, travel_angle)
 def get_wheel_force(arm_length, up_angle, angle):
     """ Return residual force on a group of wheels. """
     spring_point = get_spring_point(spring_arm_length, up_angle - angle)
-    length = abs(spring_point - spring_anchor_point)
+    length = abs(spring_point - spring_anchor_point.flattened())
     spring_force = vitamins.spring.force(length)
 
     torque = spring_force * point_to_line_distance(codecad.util.Vector(0, 0),
-                                                   spring_anchor_point,
+                                                   spring_anchor_point.flattened(),
                                                    spring_point)
     wheel_force = torque / (arm_length * math.cos(angle))
 
@@ -632,7 +632,21 @@ if __name__ == "__main__":
     p("arm_down_angle", math.degrees)
     p("suspension_travel")
 
-    #plot_wheel_forces(params)
+    def plot_wheel_forces():
+        import matplotlib.pyplot as plt
+        import numpy
+
+        angles = numpy.linspace(arm_down_angle, arm_up_angle)
+        travels = (numpy.sin(angles) - math.sin(arm_neutral_angle)) * arm_length
+        forces = numpy.vectorize(lambda angle: 1e3 * get_wheel_force(arm_length, arm_up_angle, angle))(angles)
+
+        plt.plot(travels, forces)
+        plt.xlabel("Travel distance")
+        plt.ylabel("Residual bogie force (force - {:.0f} g)".format(1e3 * parameters.design_weight / bogie_count))
+        plt.grid(True)
+        plt.show()
+
+    plot_wheel_forces()
 
     o = codecad.assembly("suspension_preview",
                          [suspension_assembly_left.translated_x(-suspension_spacing),
