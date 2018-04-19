@@ -68,7 +68,7 @@ def spring(length):
 
     return o.make_part("60mm_shock_absorber")
 spring.length = 62 # Center to center, relaxed
-spring.travel = 11
+spring.travel = 12
 spring.diameter = 17.1
 spring.top_mount_id = 5
 spring.top_mount_od = 8.5

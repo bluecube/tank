@@ -34,7 +34,7 @@ bogie_pivot_z = 7
 bogie_arm_cutout_angle = 75 # Degrees
 
 suspension_min_travel = 30 # [mm]
-suspension_sag = 0.3 # Ratio of travel from neutral position down
+suspension_sag = 0.2 # Ratio of travel from neutral position down
 
 pivot_guide_length = 10 # How long part of the pivot screw shaft is kept inside the arm
 pivot_screw_head_countersink = 4.5
