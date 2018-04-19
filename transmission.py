@@ -65,7 +65,7 @@ def shaft2_generator(sprocket_spline, gear_spline, spline_tolerance,
     return shaft
 
 gear_shaft2_spline = tools.spline(20)
-shaft2 = shaft2_generator(drive_sprocket.spline, gear_shaft2_spline, 0.1,
+shaft2 = shaft2_generator(drive_sprocket.spline, gear_shaft2_spline, 0.05,
                          vitamins.large_bearing,
                          drive_sprocket.base.thickness,
                          vitamins.long_screw.diameter,

@@ -36,7 +36,7 @@ def base_generator(n,
                    track_clearance):
 
     outer_radius = pitch_radius + connector_thickness * 0.75
-    barrel_radius = math.sqrt(pitch_radius**2 - segment_length**2) #- o_ring_minor_diameter / 2
+    barrel_radius = math.sqrt(pitch_radius**2 - segment_length**2) - track.base_thickness / 2
     mid_radius = barrel_radius - guide_height - track_clearance
 
     plate_height = connector_width
@@ -47,7 +47,7 @@ def base_generator(n,
     sprocket = polygon2d([
         (outer_radius, 0),
         (outer_radius, plate_height / 2),
-        (pitch_radius + connector_thickness / 2, plate_height),
+        (pitch_radius + connector_thickness / 4, plate_height),
         (barrel_radius, plate_height),
         (barrel_radius, barrel_height),
         (mid_radius, cone_height),
@@ -70,7 +70,6 @@ def base_generator(n,
     plate -= rectangle(2 * connector_thickness, connector_length) \
         .translated_x(connector_thickness + connector_center_distance) \
         .offset(connector_thickness / 2)
-    plate = plate.offset(-track.clearance / 2)
     plate = codecad.shapes.unsafe.CircularRepetition2D(plate, n)
     plate = plate.offset(-track_clearance / 2)
     #plate &= circle(r=pitch_radius + connector_thickness)
@@ -196,7 +195,7 @@ base = base_generator(tooth_count,
 spline = tools.spline(vitamins.large_bearing.id)
 
 inner_sprocket = inner_sprocket_generator(base,
-                                          spline, 0.1,
+                                          spline, 0.05,
                                           vitamins.large_bearing.shoulder_size, 3, 35,
 
                                           vitamins.small_screw.diameter,
