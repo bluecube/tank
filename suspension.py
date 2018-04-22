@@ -4,6 +4,7 @@ import scipy.optimize
 
 import codecad
 from codecad.shapes import *
+from codecad.util import Vector
 
 import tools
 import vitamins
@@ -46,20 +47,20 @@ bogie_swing_angle = math.radians(bogie_arm_cutout_angle - arm_knee_angle) / 2
 def point_to_line_distance(p, l1, l2):
     """ Calculate signed perpendicular distance from p to l1-l2 """
     u = (l2 - l1).normalized()
-    v = codecad.util.Vector(u.y, -u.x)
+    v = Vector(u.y, -u.x)
 
     return (p - l1).dot(v)
 
 def get_spring_point(spring_arm_length, angle):
     """ Return coordinates of the spring attachment to the arm if the spring is at given angle
     (angle is between 0 (up position) and travel_angle) """
-    return codecad.util.Vector(math.cos(spring_up_angle - angle), math.sin(spring_up_angle - angle)) * spring_arm_length
+    return Vector(math.cos(spring_up_angle - angle), math.sin(spring_up_angle - angle)) * spring_arm_length
 
 def get_spring_anchor_point(spring_arm_length):
     """ Return the spring anchor point coordinates in 2D relative to arm pivot as codecad Vector.
     Spring is placed to be at right angle to the arm at full compression. """
     return get_spring_point(spring_arm_length, 0) + \
-        codecad.util.Vector(-math.sin(spring_up_angle), math.cos(spring_up_angle)) * (vitamins.spring.length - vitamins.spring.travel)
+        Vector(-math.sin(spring_up_angle), math.cos(spring_up_angle)) * (vitamins.spring.length - vitamins.spring.travel)
 
 def get_travel_angle(spring_arm_length, spring_anchor_point):
     """ Calculate travel angle of the suspension arm based on spring length.
@@ -82,7 +83,7 @@ def spring_arm_length_equation(spring_arm_length):
     travel_angle = get_travel_angle(spring_arm_length, spring_anchor_point)
     spring_down_point = get_spring_point(spring_arm_length, travel_angle)
 
-    spring_axis_to_pivot_point = point_to_line_distance(codecad.util.Vector(0, 0),
+    spring_axis_to_pivot_point = point_to_line_distance(Vector(0, 0),
                                                         spring_anchor_point,
                                                         spring_down_point)
 
@@ -105,7 +106,7 @@ def get_wheel_force(arm_length, up_angle, angle):
     length = abs(spring_point - spring_anchor_point.flattened())
     spring_force = vitamins.spring.force(length)
 
-    torque = spring_force * point_to_line_distance(codecad.util.Vector(0, 0),
+    torque = spring_force * point_to_line_distance(Vector(0, 0),
                                                    spring_anchor_point.flattened(),
                                                    spring_point)
     wheel_force = torque / (arm_length * math.cos(angle))
@@ -124,8 +125,8 @@ def get_bogie_wheel_position(angle, side):
     s = math.sin(angle)
     c = math.cos(angle)
     side *= bogie_wheel_spacing / 2
-    return codecad.util.Vector(c * side + s * bogie_pivot_z,
-                               s * side - c * bogie_pivot_z)
+    return Vector(c * side + s * bogie_pivot_z,
+                  s * side - c * bogie_pivot_z)
 
 def bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y):
     up_angle = get_arm_angle(arm_length, bogie_pivot_up_y)
@@ -134,13 +135,13 @@ def bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y):
 
     neutral_angle = get_arm_angle(arm_length, bogie_pivot_up_y - (1 - suspension_sag) * travel)
 
-    bogie_pivot_up_point = codecad.util.Vector(math.cos(up_angle), math.sin(up_angle)) * arm_length
+    bogie_pivot_up_point = Vector(math.cos(up_angle), math.sin(up_angle)) * arm_length
 
     left_angle = (up_angle - neutral_angle) - bogie_swing_angle
     left_wheel_position = bogie_pivot_up_point + get_bogie_wheel_position(left_angle, -1)
 
     dist_left = point_to_line_distance(left_wheel_position, spring_up_point, spring_anchor_point)
-    dist_right = abs(bogie_pivot_up_point - (spring_down_point + codecad.util.Vector(suspension_spacing, 0)))
+    dist_right = abs(bogie_pivot_up_point - (spring_down_point + Vector(suspension_spacing, 0)))
 
     ret1 = dist_left - wheel_diameter / 2 - vitamins.spring.diameter / 2 - wheel_clearance
     #ret2 = dist_right - math.hypot(bogie_wheel_spacing / 2, bogie_pivot_z) - wheel_diameter / 2 - arm_thickness / 2 - wheel_clearance
@@ -550,16 +551,16 @@ bogie_assembly = codecad.assembly("bogie_assembly",
 arm_base_offset = pivot_guide_length + pivot_screw_head_countersink
 
 # Ofset for matching a piece of track with right suspension assembly
-track_offset = codecad.util.Vector(arm_length * math.cos(arm_neutral_angle),
-                                   arm_base_offset - arm_width / 2,
-                                   arm_length * math.sin(arm_neutral_angle) - bogie_pivot_z - wheel_diameter / 2)
+track_offset = Vector(arm_length * math.cos(arm_neutral_angle),
+                      arm_base_offset - arm_width / 2,
+                      arm_length * math.sin(arm_neutral_angle) - bogie_pivot_z - wheel_diameter / 2)
 
 # Pivot mating surface is at coordinates 0, 0, 0 for both left and right arm
 
 # Position of the matching surface for spring anchor point on the right side
 # This one is rotated in print orientation!
-spring_anchor_point = codecad.util.Vector(spring_anchor_point.x, spring_anchor_point.y,
-                                          arm_base_offset - (arm_width + arm_clearance + vitamins.spring.diameter / 2 + vitamins.spring.top_mount_thickness / 2))
+spring_anchor_point = Vector(spring_anchor_point.x, spring_anchor_point.y,
+                             arm_base_offset - (arm_width + arm_clearance + vitamins.spring.diameter / 2 + vitamins.spring.top_mount_thickness / 2))
 
 
 def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fraction = None):
