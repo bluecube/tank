@@ -149,7 +149,7 @@ def bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y):
     #return min(ret1, ret2)
 
 def get_optimized_bogie_pivot_up_y(arm_length):
-    a = -arm_length
+    a = -arm_length / 2
     b = arm_length
 
     va = bogie_pivot_up_y_equation(arm_length, a)
@@ -192,6 +192,7 @@ assert arm_length > vitamins.spring.length - vitamins.spring.travel
 assert arm_up_angle - arm_neutral_angle < 2 * bogie_swing_angle
 assert arm_neutral_angle - arm_down_angle < 2 * bogie_swing_angle
 assert abs(bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y)) < wheel_clearance / 100, "Check that the bogie clearances are met"
+assert abs(arm_length_equation(arm_length)) < 1e-6
 
 def road_wheel_generator(diameter, width, axle_diameter,
                          shoulder_height, shoulder_width,
@@ -564,7 +565,7 @@ spring_anchor_point = codecad.util.Vector(spring_anchor_point.x, spring_anchor_p
 def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fraction = None):
     spring_point = get_spring_point(spring_arm_length, arm_up_angle - arm_angle)
 
-    v = spring_point - spring_anchor_point
+    v = spring_point.flattened() - spring_anchor_point.flattened()
     length = abs(v)
 
     spring_degrees = 90 - math.degrees(math.atan2(v.y, v.x))

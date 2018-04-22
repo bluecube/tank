@@ -56,8 +56,8 @@ o_ring.minor_diameter = 2
 def spring(length):
     """ Return a model representing a spring extended to `length` (hole to hole) """
 
-    assert length <= spring.length
-    assert length >= spring.length - spring.travel
+    assert length <= spring.length * (1 + 1e-9)
+    assert length >= (spring.length - spring.travel) * (1 - 1e-9)
 
     o = (capsule(0, 0, 0, length / 2, spring.top_mount_od) - circle(d=spring.top_mount_id)) \
         .extruded(spring.top_mount_thickness)
