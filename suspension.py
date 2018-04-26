@@ -6,6 +6,7 @@ import codecad
 from codecad.shapes import *
 from codecad.util import Vector
 
+import util
 import tools
 import vitamins
 import parameters
@@ -44,13 +45,6 @@ wheel_gap = bogie_width + 2 * wheel_clearance
 half_wheel_width = (wheel_width - wheel_gap) / 2
 bogie_swing_angle = math.radians(bogie_arm_cutout_angle - arm_knee_angle) / 2
 
-def point_to_line_distance(p, l1, l2):
-    """ Calculate signed perpendicular distance from p to l1-l2 """
-    u = (l2 - l1).normalized()
-    v = Vector(u.y, -u.x)
-
-    return (p - l1).dot(v)
-
 def get_spring_point(spring_arm_length, angle):
     """ Return coordinates of the spring attachment to the arm if the spring is at given angle
     (angle is between 0 (up position) and travel_angle) """
@@ -83,9 +77,9 @@ def spring_arm_length_equation(spring_arm_length):
     travel_angle = get_travel_angle(spring_arm_length, spring_anchor_point)
     spring_down_point = get_spring_point(spring_arm_length, travel_angle)
 
-    spring_axis_to_pivot_point = point_to_line_distance(Vector(0, 0),
-                                                        spring_anchor_point,
-                                                        spring_down_point)
+    spring_axis_to_pivot_point = util.point_to_line_distance(Vector(0, 0),
+                                                             spring_anchor_point,
+                                                             spring_down_point)
 
     return spring_axis_to_pivot_point - (arm_thickness / 2 + vitamins.spring.diameter / 2 + arm_clearance)
 
@@ -106,9 +100,9 @@ def get_wheel_force(arm_length, up_angle, angle):
     length = abs(spring_point - spring_anchor_point.flattened())
     spring_force = vitamins.spring.force(length)
 
-    torque = spring_force * point_to_line_distance(Vector(0, 0),
-                                                   spring_anchor_point.flattened(),
-                                                   spring_point)
+    torque = spring_force * util.point_to_line_distance(Vector(0, 0),
+                                                        spring_anchor_point.flattened(),
+                                                        spring_point)
     wheel_force = torque / (arm_length * math.cos(angle))
 
     return wheel_force - parameters.design_weight / bogie_count
@@ -140,7 +134,7 @@ def bogie_pivot_up_y_equation(arm_length, bogie_pivot_up_y):
     left_angle = (up_angle - neutral_angle) - bogie_swing_angle
     left_wheel_position = bogie_pivot_up_point + get_bogie_wheel_position(left_angle, -1)
 
-    dist_left = point_to_line_distance(left_wheel_position, spring_up_point, spring_anchor_point)
+    dist_left = util.point_to_line_distance(left_wheel_position, spring_up_point, spring_anchor_point)
     dist_right = abs(bogie_pivot_up_point - (spring_down_point + Vector(suspension_spacing, 0)))
 
     ret1 = dist_left - wheel_diameter / 2 - vitamins.spring.diameter / 2 - wheel_clearance
