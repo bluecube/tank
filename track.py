@@ -10,6 +10,7 @@ import parameters
 import suspension
 
 clearance = 1
+body_clearance = 2.5  # Min distance between track and other non-track tank parts
 segment_pin_clearance = 0.05
 connector_pin_clearance = 0.25
 
