@@ -23,10 +23,11 @@ pivot_round_clearance = 0.1
 road_wheel_screw = vitamins.small_screw # Screw used as an axle for the road wheel
 
 wheel_diameter = 34
-wheel_width = vitamins.small_screw.length + vitamins.small_screw.head_height # Total width of the wheel pair
+wheel_width = road_wheel_screw.length + road_wheel_screw.head_height # Total width of the wheel pair
 
 arm_width = 8
-arm_thickness = vitamins.shoulder_screw.diameter2 + 10 * parameters.extrusion_width
+arm_thickness = 10
+arm_pivot_thickness = 15
 arm_knee_height = 14
 arm_knee_angle = 15
 
@@ -501,7 +502,7 @@ bogie = bogie_generator(bogie_wheel_spacing,
                         arm_clearance,
                         wheel_clearance,
                         ).make_part("bogie", ["3d_print"])
-arm_right = arm_generator(arm_thickness, vitamins.shoulder_screw.diameter2 + 24 * parameters.extrusion_width, arm_width,
+arm_right = arm_generator(arm_thickness, arm_pivot_thickness, arm_width,
                           arm_width - pivot_flat_clearance,
                           arm_length, spring_arm_length,
                           arm_neutral_angle, arm_up_angle,
