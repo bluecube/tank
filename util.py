@@ -33,8 +33,6 @@ def outer_tangent(p1, r1, p2, r2):
     is determined by the order of the parameters (it's the one to the left from
     line segment p1, p2). """
 
-    print("inputs", p1, r1, p2, r2)
-
     dp = p2 - p1
     dr = r2 - r1
     dp2 = dp.abs_squared()
