@@ -19,8 +19,8 @@ import track
 wheel_diameter = 50
 wheel_base_y = 0 # Approximate y coordinate of the wheel center
 spring_anchor_y = 0
-spring_angle_offset = 60 # degrees
-spring_inversion_safety_distance = 3
+spring_angle_offset = 70 # degrees
+spring_inversion_safety_distance = 2
 
 wheel_clearance = suspension.wheel_clearance
 arm_clearance = suspension.arm_clearance
@@ -55,25 +55,10 @@ arm_angle_front = get_arm_angle(vitamins.spring.length)
 wheel_position_back = pivot_position + Vector.polar(arm_length, arm_angle_back)
 wheel_position_front = pivot_position + Vector.polar(arm_length, arm_angle_front)
 
-#worst_track_guide_points = util.outer_tangent(spring_anchor_point, vitamins.spring.top_mount_od / 2 + track.body_clearance,
-#                                              worst_road_wheel_position, suspension.wheel_diameter / 2 - track.guide_height)
+wheel_travel = abs(wheel_position_back - wheel_position_front)
+wheel_x_travel = abs(wheel_position_back.x - wheel_position_front.x)
 
-#def tangent_to_line(p1, p2, y, r=0):
-#    d = (p2 - p1).normalized()
-#    p1 -= util.perpendicular(d) * r
-#
-#    y -= p1.y
-#
-#    return p1.x + d.x * y / d.y
 
-#wheel_back_x = tangent_to_line(worst_track_guide_points[0], worst_track_guide_points[1], wheel_max_y, wheel_diameter / 2 - track.guide_height)
-
-#def pivot_y_equation(y):
-#    x = tangent_to_line(worst_track_guide_points[0], worst_track_guide_points[1], y, suspension.arm_pivot_thickness / 2 + track.body_clearance)
-#    return math.hypot(x - wheel_back_x, y - wheel_max_y) - (suspension.wheel_diameter + suspension.arm_thickness) / 2 - suspension.wheel_clearance
-
-#pivot_y = scipy.optimize.brentq(pivot_y_equation, spring_anchor_y, wheel_max_y)
-#pivot_x = tangent_to_line(worst_track_guide_points[0], worst_track_guide_points[1], pivot_y, suspension.arm_pivot_thickness / 2 + track.body_clearance)
 
 def preview(arm_angle):
     wheel_position = pivot_position + Vector.polar(arm_length, arm_angle)
@@ -86,7 +71,6 @@ def preview(arm_angle):
     o += capsule(spring_anchor_point.x, spring_anchor_point.y, spring_point.x, spring_point.y, vitamins.spring.diameter)
     return o
 
-#    .translated(wheel_back_x, wheel_max_y)
 #o = capsule(worst_track_guide_points[0][0], worst_track_guide_points[0][1],
 #            worst_track_guide_points[1][0], worst_track_guide_points[1][1],
 #            1)
@@ -107,7 +91,6 @@ if __name__ == "__main__":
         print(name, f(globals()[name]))
 
     p("spring_anchor_point")
-    p("worst_road_wheel_position")
     p("arm_length")
     p("spring_arm_length")
     p("pivot_position")
@@ -116,7 +99,7 @@ if __name__ == "__main__":
     p("arm_angle_front")
     p("wheel_position_front")
     p("pivot_to_spring_base_angle")
-    #p("wheel_back_x")
-    #p("wheel_max_y")
+    p("wheel_travel")
+    p("wheel_x_travel")
 
     codecad.commandline_render(o)
