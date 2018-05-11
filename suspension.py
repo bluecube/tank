@@ -411,8 +411,6 @@ def arm_generator(thickness, pivot_thickness, width,
     bogie_pivot = (arm_length, 0)
     spring_point = (spring_arm_length * math.cos(spring_point_angle), spring_arm_length * math.sin(spring_point_angle))
 
-    pivot_outer_radius = pivot_thickness / 2
-
     knee_mid_angle = math.pi / 2 - arm_neutral_angle
 
     assert pivot_mount_height >= spring_mount_height
@@ -421,21 +419,19 @@ def arm_generator(thickness, pivot_thickness, width,
                    bogie_pivot[1] + (knee_height + 0.2 * thickness) * math.sin(knee_mid_angle - math.radians(knee_angle / 2)))
     knee_point2 = (bogie_pivot[0] + knee_height * math.cos(knee_mid_angle + math.radians(knee_angle / 2)),
                    bogie_pivot[1] + knee_height * math.sin(knee_mid_angle + math.radians(knee_angle / 2)))
-    # TODO: calculate the following angles instead of just pulling them out of thin air
-    # (or use some better modelling tool instead of just offset polygons
-    pivot_point1 = ((pivot_outer_radius - thickness / 2) * math.cos(math.radians(70)),
-                    (pivot_outer_radius - thickness / 2) * math.sin(math.radians(70)))
-    pivot_point2 = ((pivot_outer_radius - thickness / 2) * math.cos(math.radians(225)),
-                    (pivot_outer_radius - thickness / 2) * math.sin(math.radians(225)))
-    outline = polygon2d([(pivot_point1), knee_point1, bogie_pivot, knee_point2, spring_point, pivot_point2]) \
+    _, p1 = util.outer_tangent(Vector(*knee_point1), 0,
+                               Vector(0, 0), (pivot_thickness - thickness) / 2)
+    p2, _ = util.outer_tangent(Vector(0, 0), (pivot_thickness - thickness) / 2,
+                               Vector(*spring_point), 0)
+    outline = polygon2d([(p1.x, p1.y), knee_point1, bogie_pivot, knee_point2, spring_point, (p2.x, p2.y)]) \
         .offset(thickness / 2)
-    outline += circle(r=pivot_outer_radius)
+    outline += circle(d=pivot_thickness)
 
     arm = outline.extruded(width + spring_mount_height, symmetrical=False)
 
     arm += tools.cone(height=pivot_mount_height - spring_mount_height,
                       upper_diameter=pivot_mount_diameter + 2 * thick_wall,
-                      lower_diameter=2 * pivot_outer_radius,
+                      lower_diameter=pivot_thickness,
                       base_height=width + spring_mount_height)
 
     spring_mount_top_diameter = thickness / 2
