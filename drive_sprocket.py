@@ -42,7 +42,7 @@ def base_generator(n,
     plate_height = connector_width
     barrel_height = (track_width - guide_width - track_clearance) / 2
     cone_height = barrel_height + math.tan(math.radians(guide_side_angle)) * (barrel_radius - mid_radius)
-    total_height = track_width / 2
+    total_height = track_width - cone_height
 
     sprocket = polygon2d([
         (outer_radius, 0),
@@ -77,20 +77,17 @@ def base_generator(n,
 
     sprocket &= plate.extruded(float("inf"))
 
-    sprocket.screw_radius = 0.6 * mid_radius
-    sprocket.screw_count = 3
-    sprocket.thickness = total_height
+    sprocket.total_height = total_height
+    sprocket.cone_height = cone_height
+    sprocket.mid_radius = mid_radius
 
     return sprocket
 
 def inner_sprocket_generator(base,
                              spline, spline_tolerance,
+                             crown_tolerance,
                              bearing_shoulder_width, bearing_shoulder_height,
                              total_bearing_cutout_diameter,
-                             half_screw_diameter,
-                             remaining_half_screw_length,
-                             half_screw_nut_s,
-                             half_screw_nut_height,
                              hole_blinding_layer_height):
     half = base
     half -= spline.offset(spline_tolerance).extruded(float("inf"))
@@ -110,76 +107,50 @@ def inner_sprocket_generator(base,
         .revolved() \
         .rotated_x(90)
 
-    nut_plane = base.thickness - remaining_half_screw_length + half_screw_nut_height + half_screw_diameter / 6
-    screw = cylinder(d=half_screw_diameter, h=float("inf"))
-    screw += regular_polygon2d(n=6, across_flats=half_screw_nut_s) \
-        .extruded(nut_plane,
-                  symmetrical=False)
-    if hole_blinding_layer_height:
-        screw -= box(half_screw_diameter, half_screw_diameter, hole_blinding_layer_height) \
-            .translated_z(nut_plane + hole_blinding_layer_height / 2)
-    screw = screw.translated_x(base.screw_radius)
-    half -= unsafe.CircularRepetition(screw, base.screw_count)
+    half -= tools.crown_cutout(outer_diameter=2*base.mid_radius,
+                               inner_diameter=spline.od / 2 + base.mid_radius,
+                               tolerance=crown_tolerance,
+                               height=base.total_height - base.cone_height,
+                               inverse=True) \
+        .translated_z(base.total_height)
 
     return half
 
 def outer_sprocket_generator(base,
+                             crown_tolerance,
                              center_screw_diameter,
                              center_screw_wall,
                              center_screw_head_diameter,
                              center_screw_head_height,
 
-                             half_screw_diameter,
-                             half_screw_head_diameter,
-                             half_screw_head_height,
-
                              wall_thickness,
                              hole_blinding_layer_height):
     half = base
 
+    screw_head_height = (base.total_height + base.cone_height) / 2 - center_screw_wall
+
     # Central screw hole and its cone
-    central_cutouts = polygon2d([
+    half -= polygon2d([
         (-10, -10),
-        (-10, base.thickness + 10),
-        (center_screw_diameter / 2, base.thickness + 10),
-        (center_screw_diameter / 2, base.thickness - center_screw_wall),
-        (center_screw_head_diameter / 2, base.thickness - center_screw_wall),
-        (center_screw_head_diameter / 2, base.thickness - center_screw_wall - center_screw_head_height),
-        (center_screw_head_diameter * 1.2 / 2,
-            base.thickness - center_screw_wall - center_screw_head_height - center_screw_head_height * 0.1),
-        (base.screw_radius - half_screw_head_diameter / 2 - wall_thickness, 0),
-        (base.screw_radius - half_screw_head_diameter / 2 - wall_thickness, -10),
-        ])
-
-    # Decorative ring:
-    central_cutouts += circle(d=1.5 * wall_thickness). \
-        translated_x(base.screw_radius + half_screw_head_diameter / 2 + 3 * wall_thickness)
-
-    if hole_blinding_layer_height:
-        central_cutouts -= rectangle(center_screw_diameter, hole_blinding_layer_height) \
-            .translated_y(base.thickness - center_screw_wall + hole_blinding_layer_height / 2)
-
-    half -= central_cutouts \
+        (-10, base.total_height + 10),
+        (center_screw_diameter / 2, base.total_height + 10),
+        (center_screw_diameter / 2, screw_head_height),
+        (center_screw_head_diameter / 2, screw_head_height),
+        (center_screw_head_diameter / 2, screw_head_height - center_screw_head_height),
+        (center_screw_head_diameter / 2 + screw_head_height - center_screw_head_height, 0)]) \
         .revolved() \
         .rotated_x(90)
 
-
-    screw = polygon2d([
-        (-10, -10),
-        (-10, base.thickness + 10),
-        (half_screw_diameter / 2, base.thickness + 10),
-        (half_screw_diameter / 2, half_screw_head_height),
-        (half_screw_head_diameter / 2, half_screw_head_height),
-        (half_screw_head_diameter / 2, -10)])
-
     if hole_blinding_layer_height:
-        screw -= rectangle(half_screw_diameter, hole_blinding_layer_height) \
-            .translated_y(half_screw_head_height + hole_blinding_layer_height / 2)
+        half += cylinder(r=center_screw_diameter, h=hole_blinding_layer_height, symmetrical=False) \
+            .translated_z(screw_head_height)
 
-    screw = screw.revolved() \
-        .rotated_x(90) \
-        .translated_x(base.screw_radius)
-    half -= unsafe.CircularRepetition(screw, base.screw_count)
+    half -= tools.crown_cutout(outer_diameter=2*base.mid_radius,
+                               inner_diameter=spline.od / 2 + base.mid_radius,
+                               tolerance=crown_tolerance,
+                               height=base.total_height - base.cone_height,
+                               inverse=False) \
+        .translated_z(base.total_height)
 
     return half
 
@@ -196,36 +167,26 @@ spline = tools.spline(vitamins.large_bearing.id)
 
 inner_sprocket = inner_sprocket_generator(base,
                                           spline, 0.05,
-                                          vitamins.large_bearing.shoulder_size, 3, 35,
-
-                                          vitamins.small_screw.diameter,
-                                          vitamins.small_screw.length + vitamins.small_screw.head_height - base.thickness,
-                                          vitamins.small_screw.lock_nut.s,
-                                          vitamins.small_screw.lock_nut.height,
-
+                                          0.1, # Crown tolerance
+                                          vitamins.large_bearing.shoulder_size, 4, 40,
                                           parameters.overhang_hole_blinding) \
     .make_part("inner_drive_sprocket", ["3d_print"])
 outer_sprocket = outer_sprocket_generator(base,
+                                          0.1, # Crown tolerance
                                           vitamins.small_screw.diameter,
                                           center_screw_wall_thickness,
                                           vitamins.long_screw.head_diameter,
                                           vitamins.long_screw.head_height,
-
-                                          vitamins.small_screw.diameter,
-                                          vitamins.small_screw.head_diameter,
-                                          vitamins.small_screw.head_height,
 
                                           3 * parameters.extrusion_width,
                                           parameters.overhang_hole_blinding) \
     .make_part("outer_drive_sprocket", ["3d_print"])
 
 drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
-                                           [inner_sprocket.rotated_x(180).translated_z(track.width / 2),
-                                            outer_sprocket.translated_z(-track.width / 2)] + \
-                                           [vitamins.small_screw] * 3 + \
-                                           [vitamins.small_screw.lock_nut] * 3)
+                                           [inner_sprocket.rotated_x(90).translated_y(track.width / 2),
+                                            outer_sprocket.rotated_x(-90).translated_y(-track.width / 2)])
 
 if __name__ == "__main__":
     print("pitch radius", pitch_radius)
 
-    codecad.commandline_render(drive_sprocket_assembly)
+    codecad.commandline_render(drive_sprocket_assembly.rotated_x(90).shape() & half_space())

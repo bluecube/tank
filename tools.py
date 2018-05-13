@@ -46,6 +46,47 @@ def spline(outer_diameter, approx_tooth_size = 2):
 
     return spline
 
+def crown(outer_diameter, inner_diameter=None,
+          inverse=False,
+          assymetrical=True, approx_tooth_size=5, min_n=2):
+    if inner_diameter is None:
+        inner_diameter = 0.6 * outer_diameter
+    else:
+        assert inner_diameter < outer_diameter
+
+    n = max(min_n,
+            round(math.pi * inner_diameter / (2 * approx_tooth_size)))
+    mask = circle(d=outer_diameter) - circle(d=inner_diameter)
+
+    def segment(angle):
+        return half_plane().rotated(180 + angle / 2) & half_plane().rotated(-angle / 2)
+
+    ret = unsafe.CircularRepetition2D(segment(180 / n), n)
+    if assymetrical:
+        ret += segment(1.5 * 180 / n)
+
+    if inverse:
+        ret = mask - ret
+    else:
+        ret = mask & ret
+
+    ret.n = n
+    ret.od = outer_diameter
+    ret.id = inner_diameter
+
+    return ret
+
+def crown_cutout(outer_diameter, inner_diameter, tolerance, height, inverse):
+    c = crown(outer_diameter=1.2 * outer_diameter,
+              inner_diameter=inner_diameter - tolerance,
+              inverse=inverse)
+    ret = c \
+        .offset(tolerance / 2) \
+        .extruded(2 * height)
+    ret += cylinder(d=inner_diameter, h=height)
+
+    return ret
+
 def name_only_part(name, attributes=[]):
     return sphere() \
         .make_part(name, attributes) \
@@ -53,8 +94,6 @@ def name_only_part(name, attributes=[]):
 
 if __name__ == "__main__":
     import codecad
-    s = spline(10)
-
-    print(s.n, s.od, s.id, s.tooth_size)
+    s = crown(30)
 
     codecad.commandline_render(s)
