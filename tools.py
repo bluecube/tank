@@ -87,6 +87,15 @@ def crown_cutout(outer_diameter, inner_diameter, tolerance, height, inverse):
 
     return ret
 
+def wheel_lightening_holes(n, inner_radius, outer_radius, wall_thickness):
+    center_radius = (inner_radius + outer_radius) / 2
+    polygon = regular_polygon2d(n=n, r=center_radius)
+    hole_diameter = min(outer_radius - inner_radius,
+                        polygon.side_length - wall_thickness)
+
+    return unsafe.CircularRepetition2D(circle(d=hole_diameter).translated_x(center_radius),
+                                       n).extruded(float("inf"))
+
 def name_only_part(name, attributes=[]):
     return sphere() \
         .make_part(name, attributes) \
