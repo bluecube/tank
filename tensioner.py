@@ -91,7 +91,7 @@ def wheel_generator(diameter, whole_width,
                       (bearing.od / 2 + bearing_height, 0)])
 
     if inner_half:
-        half -= rectangle(10, 9).offset(arm_clearance).translated(arm_length, -arm_clearance)
+        half -= rectangle(10, 2*(4.5-wheel_clearance)).offset(wheel_clearance).translated(arm_length, -arm_clearance)
 
     half = half \
         .revolved() \
