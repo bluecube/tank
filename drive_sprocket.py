@@ -70,7 +70,7 @@ def base_generator(n,
     plate -= rectangle(2 * connector_thickness, connector_length) \
         .translated_x(connector_thickness + connector_center_distance) \
         .offset(connector_thickness / 2)
-    plate = codecad.shapes.unsafe.CircularRepetition2D(plate, n)
+    plate = unsafe.CircularRepetition2D(plate, n)
     plate = plate.offset(-track_clearance / 2)
     #plate &= circle(r=pitch_radius + connector_thickness)
     #plate = plate.extruded(plate_height, symmetrical=False)
@@ -90,22 +90,28 @@ def inner_sprocket_generator(base,
                              total_bearing_cutout_diameter,
                              hole_blinding_layer_height):
     half = base
-    half -= spline.offset(spline_tolerance).extruded(float("inf"))
 
     r1 = spline.od / 2 + bearing_shoulder_width
     r3 = total_bearing_cutout_diameter / 2
-    h = (r3 - r1 + bearing_shoulder_height) / 2
-    r2 = r3 - h
+    r2 = r3 - bearing_shoulder_height
 
     # Central cutout for the bearing housing
     half -= polygon2d([
         (r1, -10),
         (r1, bearing_shoulder_height),
-        (r2, h),
+        (r2, bearing_shoulder_height),
         (r3, 0),
         (r3, -10)]) \
         .revolved() \
         .rotated_x(90)
+
+    half += unsafe.CircularRepetition2D(rectangle(r3,
+                                                  2 * parameters.extrusion_width).translated_x(r3 / 2),
+                                        5) \
+        .extruded(2 * hole_blinding_layer_height) \
+        .translated_z(bearing_shoulder_height)
+
+    half -= spline.offset(spline_tolerance).extruded(float("inf"))
 
     half -= tools.crown_cutout(outer_diameter=2*base.mid_radius,
                                inner_diameter=spline.od / 2 + base.mid_radius,
@@ -168,7 +174,7 @@ spline = tools.spline(vitamins.large_bearing.id)
 inner_sprocket = inner_sprocket_generator(base,
                                           spline, 0.05,
                                           0.1, # Crown tolerance
-                                          vitamins.large_bearing.shoulder_size, 4, 40,
+                                          vitamins.large_bearing.shoulder_size, 5, 40,
                                           parameters.overhang_hole_blinding) \
     .make_part("inner_drive_sprocket", ["3d_print"])
 outer_sprocket = outer_sprocket_generator(base,
@@ -189,4 +195,4 @@ drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
 if __name__ == "__main__":
     print("pitch radius", pitch_radius)
 
-    codecad.commandline_render(drive_sprocket_assembly.rotated_x(90).shape() & half_space())
+    codecad.commandline_render((drive_sprocket_assembly.rotated_x(90).shape() & half_space()).rotated_x(45))
