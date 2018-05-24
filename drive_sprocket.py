@@ -36,7 +36,7 @@ def base_generator(n,
                    track_clearance):
 
     outer_radius = pitch_radius + connector_thickness * 0.75
-    barrel_radius = math.sqrt(pitch_radius**2 - segment_length**2) - track.base_thickness / 2
+    barrel_radius = math.sqrt(pitch_radius**2 - (segment_length / 2)**2) - track.base_thickness / 2
     mid_radius = barrel_radius - guide_height - track_clearance
 
     plate_height = connector_width
@@ -195,4 +195,4 @@ drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
 if __name__ == "__main__":
     print("pitch radius", pitch_radius)
 
-    codecad.commandline_render((drive_sprocket_assembly.rotated_x(90).shape() & half_space()).rotated_x(45))
+    codecad.commandline_render((drive_sprocket_assembly.shape() & half_space()).rotated_x(45))
