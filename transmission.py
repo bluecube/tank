@@ -67,7 +67,7 @@ def shaft2_generator(sprocket_spline, gear_spline, spline_tolerance,
 gear_shaft2_spline = tools.spline(20)
 shaft2 = shaft2_generator(drive_sprocket.spline, gear_shaft2_spline, 0.05,
                          vitamins.large_bearing,
-                         drive_sprocket.base.thickness,
+                         (drive_sprocket.base.total_height + drive_sprocket.base.cone_height) / 2,
                          vitamins.long_screw.diameter,
                          vitamins.long_screw.length - drive_sprocket.center_screw_wall_thickness,
                          vitamins.long_screw.lock_nut.s,
@@ -77,7 +77,7 @@ shaft2 = shaft2_generator(drive_sprocket.spline, gear_shaft2_spline, 0.05,
 
 shaft2_assembly = codecad.assembly("shaft2_assembly",
                                    [drive_sprocket.drive_sprocket_assembly,
-                                    shaft2.rotated_x(180).translated_z(shaft2.part.data.length + 20),
+                                    shaft2.rotated_x(90).translated_y(shaft2.part.data.length),
                                     vitamins.long_screw,
                                     vitamins.long_screw.lock_nut])
 
@@ -92,4 +92,4 @@ if __name__ == "__main__":
           ", ".join("{}:{}".format(*teeth) for teeth in transmission_steps),
           "({:.1f}:1) -> {:.1f}m/s, {:.1f}km/h".format(ratio, speed/1000, 3.6 * speed / 1000))
 
-    codecad.commandline_render((shaft2_assembly.shape().rotated_y(-90) & half_space()).rotated_z(-30).rotated_x(15))
+    codecad.commandline_render(shaft2_assembly.rotated_z(90).shape() & half_space())
