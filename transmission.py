@@ -22,8 +22,7 @@ def shaft2_generator(sprocket_spline, gear_spline, spline_tolerance,
                      sprocket_screw_diameter,
                      remaining_sprocket_screw_length,
                      sprocket_screw_nut_s,
-                     sprocket_screw_nut_height,
-                     hole_blinding_layer_height):
+                     sprocket_screw_nut_height):
     h = 5
     shaft = gear_spline.offset(-spline_tolerance).extruded(h, symmetrical=False)
 
@@ -56,9 +55,9 @@ def shaft2_generator(sprocket_spline, gear_spline, spline_tolerance,
         .translated_x(50) \
         .translated_z(sprocket_screw_nut_plane - sprocket_screw_nut_height + sprocket_screw_nut_height / 2)
 
-    if hole_blinding_layer_height:
-        shaft += box(sprocket_screw_diameter, sprocket_screw_diameter, hole_blinding_layer_height) \
-            .translated_z(sprocket_screw_nut_plane + hole_blinding_layer_height / 2)
+    if parameters.overhang_hole_blinding:
+        shaft += box(sprocket_screw_diameter, sprocket_screw_diameter, parameters.overhang_hole_blinding) \
+            .translated_z(sprocket_screw_nut_plane + parameters.overhang_hole_blinding / 2)
 
     shaft.length = h
 
@@ -71,8 +70,7 @@ shaft2 = shaft2_generator(drive_sprocket.spline, gear_shaft2_spline, 0.05,
                          vitamins.long_screw.diameter,
                          vitamins.long_screw.length - drive_sprocket.center_screw_wall_thickness,
                          vitamins.long_screw.lock_nut.s,
-                         vitamins.long_screw.lock_nut.height,
-                         parameters.overhang_hole_blinding) \
+                         vitamins.long_screw.lock_nut.height) \
     .make_part("transmission_shaft2", ["3d_print"])
 
 shaft2_assembly = codecad.assembly("shaft2_assembly",

@@ -68,7 +68,6 @@ def wheel_generator(diameter, whole_width,
                     bearing_height,
                     wall_thickness,
                     guide_height, guide_width, guide_side_angle, track_clearance,
-                    hole_blinding_layer_height,
                     inner_half):
     radius = diameter / 2
     mid_radius = radius - guide_height - track_clearance
@@ -97,8 +96,8 @@ def wheel_generator(diameter, whole_width,
         .revolved() \
         .rotated_x(90)
 
-    if hole_blinding_layer_height:
-        half += cylinder(r=mid_radius, h=hole_blinding_layer_height) \
+    if parameters.overhang_hole_blinding:
+        half += cylinder(r=mid_radius, h=parameters.overhang_hole_blinding) \
             .translated_z(bearing_height + bearing.thickness)
 
     half -= tools.crown_cutout(outer_diameter=2 * mid_radius,
@@ -182,7 +181,6 @@ inner_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
                                    7, # bearing_height
                                    4 * parameters.extrusion_width,
                                    track.guide_height, track.guide_width, track.guide_side_angle, track.clearance,
-                                   parameters.overhang_hole_blinding,
                                    True) \
     .make_part("inner_tensioner_wheel", ["3d_print"])
 outer_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
@@ -191,12 +189,11 @@ outer_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
                                    suspension.wheel_width + wheel_clearance + arm_width - wheel_screw.length,
                                    4 * parameters.extrusion_width,
                                    track.guide_height, track.guide_width, track.guide_side_angle, track.clearance,
-                                   parameters.overhang_hole_blinding,
                                    False) \
     .make_part("outer_tensioner_wheel", ["3d_print"])
 wheel_assembly = codecad.assembly("tensioner_wheel_assembly",
-                                  [inner_wheel_half.rotated_x(90).translated_y(3 + suspension.wheel_width / 2),
-                                   outer_wheel_half.rotated_x(-90).translated_y(-3-suspension.wheel_width / 2),
+                                  [inner_wheel_half.rotated_x(90).translated_y(suspension.wheel_width / 2),
+                                   outer_wheel_half.rotated_x(-90).translated_y(-suspension.wheel_width / 2),
                                    wheel_screw] +
                                   [vitamins.small_bearing] * 2)
 

@@ -87,8 +87,7 @@ def inner_sprocket_generator(base,
                              spline, spline_tolerance,
                              crown_tolerance,
                              bearing_shoulder_width, bearing_shoulder_height,
-                             total_bearing_cutout_diameter,
-                             hole_blinding_layer_height):
+                             total_bearing_cutout_diameter):
     half = base
 
     r1 = spline.od / 2 + bearing_shoulder_width
@@ -106,9 +105,9 @@ def inner_sprocket_generator(base,
         .rotated_x(90)
 
     half += unsafe.CircularRepetition2D(rectangle(r3,
-                                                  2 * parameters.extrusion_width).translated_x(r3 / 2),
+                                                  parameters.overhang_spokes_width).translated_x(r3 / 2),
                                         5) \
-        .extruded(2 * hole_blinding_layer_height) \
+        .extruded(2 * parameters.overhang_spokes_height) \
         .translated_z(bearing_shoulder_height)
 
     half -= spline.offset(spline_tolerance).extruded(float("inf"))
@@ -129,8 +128,7 @@ def outer_sprocket_generator(base,
                              center_screw_head_diameter,
                              center_screw_head_height,
 
-                             wall_thickness,
-                             hole_blinding_layer_height):
+                             wall_thickness):
     half = base
 
     screw_head_height = (base.total_height + base.cone_height) / 2 - center_screw_wall
@@ -147,8 +145,8 @@ def outer_sprocket_generator(base,
         .revolved() \
         .rotated_x(90)
 
-    if hole_blinding_layer_height:
-        half += cylinder(r=center_screw_diameter, h=hole_blinding_layer_height, symmetrical=False) \
+    if parameters.overhang_hole_blinding:
+        half += cylinder(r=center_screw_diameter, h=parameters.overhang_hole_blinding, symmetrical=False) \
             .translated_z(screw_head_height)
 
     half -= tools.crown_cutout(outer_diameter=2*base.mid_radius,
@@ -174,8 +172,7 @@ spline = tools.spline(vitamins.large_bearing.id)
 inner_sprocket = inner_sprocket_generator(base,
                                           spline, 0.05,
                                           0.1, # Crown tolerance
-                                          vitamins.large_bearing.shoulder_size, 5, 40,
-                                          parameters.overhang_hole_blinding) \
+                                          vitamins.large_bearing.shoulder_size, 5, 40) \
     .make_part("inner_drive_sprocket", ["3d_print"])
 outer_sprocket = outer_sprocket_generator(base,
                                           0.1, # Crown tolerance
@@ -184,8 +181,7 @@ outer_sprocket = outer_sprocket_generator(base,
                                           vitamins.long_screw.head_diameter,
                                           vitamins.long_screw.head_height,
 
-                                          3 * parameters.extrusion_width,
-                                          parameters.overhang_hole_blinding) \
+                                          3 * parameters.extrusion_width) \
     .make_part("outer_drive_sprocket", ["3d_print"])
 
 drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
@@ -195,4 +191,4 @@ drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
 if __name__ == "__main__":
     print("pitch radius", pitch_radius)
 
-    codecad.commandline_render((drive_sprocket_assembly.shape() & half_space()).rotated_x(45))
+    codecad.commandline_render(drive_sprocket_assembly.rotated_x(180))
