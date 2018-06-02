@@ -68,6 +68,7 @@ def wheel_generator(diameter, whole_width,
                     bearing_height,
                     wall_thickness,
                     guide_height, guide_width, guide_side_angle, track_clearance,
+                    arm_length, screw_head_diameter, screw_head_height, screw_head_clearance,
                     inner_half):
     radius = diameter / 2
     mid_radius = radius - guide_height - track_clearance
@@ -90,15 +91,39 @@ def wheel_generator(diameter, whole_width,
                       (bearing.od / 2 + bearing_height, 0)])
 
     if inner_half:
-        half -= rectangle(10, 2*(4.5-wheel_clearance)).offset(wheel_clearance).translated(arm_length, -arm_clearance)
+        half -= rectangle(screw_head_diameter,
+                          2 * screw_head_height) \
+            .offset(screw_head_clearance) \
+            .translated_x(arm_length)
 
     half = half \
         .revolved() \
         .rotated_x(90)
 
+    lightening_holes = 5
+
+    half -= unsafe.CircularRepetition(cylinder(d=screw_head_diameter * 1.02,
+                                               h=float("inf")) \
+                                        .translated_x(arm_length),
+                                      lightening_holes)
+
     if parameters.overhang_hole_blinding:
-        half += cylinder(r=mid_radius, h=parameters.overhang_hole_blinding) \
+        half += cylinder(r=bearing.od, h=parameters.overhang_hole_blinding) \
             .translated_z(bearing_height + bearing.thickness)
+
+        if inner_half:
+            plug = circle(r=arm_length + screw_head_diameter * 0.55) - circle(r=arm_length - screw_head_diameter * 0.55)
+            half += plug \
+                .extruded(parameters.overhang_hole_blinding, symmetrical=False) \
+                .translated_z(screw_head_height + screw_head_clearance)
+
+    if inner_half and parameters.overhang_spokes_width and parameters.overhang_spokes_height:
+        half += unsafe.CircularRepetition2D(rectangle(screw_head_diameter + 2 * screw_head_clearance,
+                                                      parameters.overhang_spokes_width).translated_x(arm_length),
+                                            lightening_holes) \
+            .extruded(2 * parameters.overhang_spokes_height) \
+            .translated_z(screw_head_height + screw_head_clearance) \
+            .rotated_z(180 / lightening_holes)
 
     half -= tools.crown_cutout(outer_diameter=2 * mid_radius,
                                inner_diameter=inner_radius + mid_radius,
@@ -106,11 +131,6 @@ def wheel_generator(diameter, whole_width,
                                height=total_height - cone_height,
                                inverse=inner_half) \
         .translated_z(total_height)
-
-    #half -= tools.wheel_lightening_holes(5,
-    #                                     bearing.od / 2 + wall_thickness,
-    #                                     radius - wall_thickness,
-    #                                     wall_thickness)
 
     return half
 
@@ -181,6 +201,7 @@ inner_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
                                    7, # bearing_height
                                    4 * parameters.extrusion_width,
                                    track.guide_height, track.guide_width, track.guide_side_angle, track.clearance,
+                                   arm_length, vitamins.shoulder_screw.head_diameter, vitamins.shoulder_screw.head_height - wheel_clearance, wheel_clearance,
                                    True) \
     .make_part("inner_tensioner_wheel", ["3d_print"])
 outer_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
@@ -189,10 +210,11 @@ outer_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
                                    suspension.wheel_width + wheel_clearance + arm_width - wheel_screw.length,
                                    4 * parameters.extrusion_width,
                                    track.guide_height, track.guide_width, track.guide_side_angle, track.clearance,
+                                   arm_length, vitamins.shoulder_screw.head_diameter, vitamins.shoulder_screw.head_height - wheel_clearance, wheel_clearance,
                                    False) \
     .make_part("outer_tensioner_wheel", ["3d_print"])
 wheel_assembly = codecad.assembly("tensioner_wheel_assembly",
-                                  [inner_wheel_half.rotated_x(90).translated_y(suspension.wheel_width / 2),
+                                  [inner_wheel_half.rotated_x(90).translated_y(8 + suspension.wheel_width / 2),
                                    outer_wheel_half.rotated_x(-90).translated_y(-suspension.wheel_width / 2),
                                    wheel_screw] +
                                   [vitamins.small_bearing] * 2)
@@ -219,4 +241,4 @@ if __name__ == "__main__":
     p("wheel_travel")
     p("wheel_x_travel")
 
-    codecad.commandline_render(wheel_assembly.rotated_x(90).shape() & half_space())
+    codecad.commandline_render((wheel_assembly.rotated_x(-90).shape() & half_space()).rotated_x(-90))

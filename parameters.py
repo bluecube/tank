@@ -13,6 +13,6 @@ thick_wall = 4 * extrusion_width
 
 overhang_hole_blinding = layer_height
 overhang_spokes_width = 2 * extrusion_width
-overhang_spokes_height = layer_height
+overhang_spokes_height = overhang_hole_blinding
 
 design_weight = 4 # [kg]
