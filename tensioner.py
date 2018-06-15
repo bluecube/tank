@@ -13,9 +13,6 @@ import parameters
 import suspension
 import track
 
-# The layout calculations and tensioner assembly are referenced to the following
-# suspension module's main pivot
-
 wheel_diameter = 55
 wheel_base_y = 0 # Approximate y coordinate of the wheel center
 spring_anchor_y = 15
@@ -39,9 +36,6 @@ arm_length = (wheel_diameter / 2 + wheel_bearing.od / 2 + inner_bearing_height) 
     # Max length so that the pivot is still completely hidden by the wheel
 arm_pivot_thickness = 2 * (wheel_diameter / 2 - arm_length - wheel_clearance)
 
-spring_anchor_point = Vector(0 - suspension.arm_pivot_thickness / 2 - vitamins.spring.top_mount_od / 2 - suspension.arm_clearance,
-                             spring_anchor_y)
-
 def spring_arm_length_equation(spring_arm_length):
     return arm_length**2 + spring_arm_length**2 - 2 * arm_length * spring_arm_length * math.cos(math.radians(spring_angle_offset)) - \
            (wheel_diameter / 2 + wheel_clearance + vitamins.spring.bottom_mount_od / 2)**2
@@ -49,9 +43,11 @@ spring_arm_length = scipy.optimize.brentq(spring_arm_length_equation, 0, 2 * whe
 
 pivot_to_spring_anchor = spring_arm_length + vitamins.spring.length - vitamins.spring.travel - spring_inversion_safety_distance
 pivot_y = wheel_base_y + arm_length
-pivot_position = Vector(spring_anchor_point.x - math.sqrt(pivot_to_spring_anchor**2 - (pivot_y - spring_anchor_y)**2),
-                        pivot_y)
+pivot_position = Vector(0, pivot_y)
 pivot_to_spring_anchor_angle = -math.degrees(math.asin((pivot_y - spring_anchor_y) / pivot_to_spring_anchor))
+
+spring_anchor_point = Vector(math.sqrt(pivot_to_spring_anchor**2 - (pivot_y - spring_anchor_y)**2), spring_anchor_y)
+to_suspension_pivot = spring_anchor_point.x + suspension.arm_pivot_thickness / 2 + vitamins.spring.top_mount_od / 2 + suspension.arm_clearance
 
 def get_arm_angle(spring_length):
     return pivot_to_spring_anchor_angle - \
@@ -263,6 +259,7 @@ if __name__ == "__main__":
     def p(name, f=lambda x: x):
         print(name, f(globals()[name]))
 
+    p("to_suspension_pivot")
     p("spring_anchor_point")
     p("arm_length")
     p("spring_arm_length")
@@ -277,6 +274,6 @@ if __name__ == "__main__":
 
     codecad.commandline_render(tensioner_generator(False, arm_angle_back).shape().rotated_z(180)
                                + tensioner_generator(False, arm_angle_front).shape().rotated_z(180).translated_z(70)
-                               + tensioner_generator(True, arm_angle_back).shape()
-                               + tensioner_generator(True, arm_angle_front).shape().translated_z(70))
+                               + tensioner_generator(True, arm_angle_back).shape().translated_x(150)
+                               + tensioner_generator(True, arm_angle_front).shape().translated_x(150).translated_z(70))
     #codecad.commandline_render(wheel_assembly)

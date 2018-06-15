@@ -25,6 +25,7 @@ pitch_radius = scipy.optimize.brentq(pitch_radius_eq,
 circumference = (track.segment_length + track.connector_length) * tooth_count
     # How much the track moves for one rotation of the drive sprocket
 center_screw_wall_thickness = 3
+to_suspension_pivot = 145 # TODO: Calculate this
 
 def base_generator(n,
                    pitch_radius,

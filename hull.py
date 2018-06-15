@@ -4,8 +4,31 @@ import codecad
 from codecad.shapes import *
 
 import parameters
-import suspension
 import tools
+import tensioner
+import suspension
+import drive_sprocket
+
+tensioner_x = 0
+bogie_x = [i * suspension.suspension_spacing + tensioner.to_suspension_pivot
+           for i in range(suspension.bogie_count // 2)]
+drive_sprocket_x = bogie_x[-1] + drive_sprocket.to_suspension_pivot
+
+def hull_generator(tensioner_position, bogie_positions, drive_sprocket_position, height, front_angle, rear_angle):
+    pass
+
+
+
+if __name__ == "__main__":
+    def p(name, f=lambda x: x):
+        print(name, f(globals()[name]))
+
+    p("tensioner_x")
+    p("bogie_x")
+    p("drive_sprocket_x")
+
+import sys
+sys.exit()
 
 suspension_pivot_z = 20
 thin_wall = 5 * parameters.extrusion_width
