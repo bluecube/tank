@@ -137,11 +137,13 @@ def wheel_generator(diameter, whole_width,
     return half
 
 
-def arm_generator(thickness, pivot_thickness, width,
+def arm_generator(thickness, pivot_thickness, width, spring_point_width,
                   arm_length, spring_arm_length, spring_angle_offset,
                   cone_height,
+                  wheel_diameter, wheel_clearance,
                   pivot_hole_diameter,
-                  wheel_bearing, wheel_screw):
+                  wheel_bearing, wheel_screw,
+                  spring_screw):
 
     cone_upper_diameter = wheel_bearing.id + 2 * wheel_bearing.shoulder_size
 
@@ -160,7 +162,15 @@ def arm_generator(thickness, pivot_thickness, width,
     outline += circle(d=pivot_thickness)
 
     arm = outline \
-        .extruded(width, symmetrical=False)
+        .extruded(spring_point_width, symmetrical=False)
+
+    arm -= rectangle(wheel_diameter, 2 * spring_point_width) \
+        .translated_y(spring_point_width + arm_width + wheel_clearance) \
+        .offset(wheel_clearance) \
+        .revolved() \
+        .rotated_x(90) \
+        .translated_x(arm_length)
+
     cone = tools.cone(height=cone_height,
                       upper_diameter=cone_upper_diameter,
                       lower_diameter=(cone_upper_diameter + thickness) / 2 + cone_height,
@@ -171,10 +181,11 @@ def arm_generator(thickness, pivot_thickness, width,
 
     arm -= cylinder(d=pivot_hole_diameter, h=float("inf"))
 
-    arm -= cylinder(d=wheel_screw.diameter, h=float("inf")).translated_x(arm_length)
-    arm -= regular_polygon2d(n=6, across_flats=wheel_screw.lock_nut.s) \
-        .extruded(2 * wheel_screw.lock_nut.height) \
+    arm -= tools.screw_hole_with_nut_pocket(wheel_screw) \
         .translated_x(arm_length)
+
+    arm -= tools.screw_hole_with_nut_pocket(spring_screw) \
+        .translated(*spring_point)
 
     return arm
 
@@ -196,11 +207,13 @@ outer_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
                                    arm_length, vitamins.shoulder_screw.head_diameter, vitamins.shoulder_screw.head_height - wheel_clearance, wheel_clearance,
                                    False) \
     .make_part("outer_tensioner_wheel", ["3d_print"])
-arm_left = arm_generator(arm_thickness, arm_pivot_thickness, arm_width,
+arm_left = arm_generator(arm_thickness, arm_pivot_thickness, arm_width, 12,
                          arm_length, spring_arm_length, spring_angle_offset,
-                         inner_bearing_height + wheel_clearance,
+                         inner_bearing_height + wheel_clearance, # cone height
+                         wheel_diameter, wheel_clearance,
                          vitamins.shoulder_screw.diameter2 + pivot_round_clearance,
-                         wheel_bearing, wheel_screw) \
+                         wheel_bearing, wheel_screw,
+                         vitamins.small_screw) \
     .make_part("tensioner_arm_left", ["3d_print"])
 arm_right = arm_left.shape().mirrored_x().make_part("tensioner_arm_right", ["3d_print"])
 
@@ -272,8 +285,8 @@ if __name__ == "__main__":
     p("wheel_travel")
     p("wheel_x_travel")
 
-    codecad.commandline_render(tensioner_generator(False, arm_angle_back).shape().rotated_z(180)
-                               + tensioner_generator(False, arm_angle_front).shape().rotated_z(180).translated_z(70)
-                               + tensioner_generator(True, arm_angle_back).shape().translated_x(150)
-                               + tensioner_generator(True, arm_angle_front).shape().translated_x(150).translated_z(70))
+    codecad.commandline_render(tensioner_generator(False, arm_angle_back).shape().rotated_z(180).translated_x(150)
+                               + tensioner_generator(False, arm_angle_front).shape().rotated_z(180).translated_z(70).translated_x(150)
+                               + tensioner_generator(False, arm_angle_back).shape()
+                               + tensioner_generator(False, arm_angle_front).shape().translated_z(70))
     #codecad.commandline_render(wheel_assembly)

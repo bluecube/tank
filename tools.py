@@ -1,5 +1,7 @@
 from codecad.shapes import *
 
+import parameters
+
 def cone(height, upper_diameter, lower_diameter, base_height=0):
     """ Truncated cone with cylindrical base, standing on XY plane """
     points = [(-lower_diameter / 2, 0),
@@ -95,6 +97,26 @@ def wheel_lightening_holes(n, inner_radius, outer_radius, wall_thickness):
 
     return unsafe.CircularRepetition2D(circle(d=hole_diameter).translated_x(center_radius),
                                        n).extruded(float("inf"))
+
+def screw_hole_with_nut_pocket(screw, exact_nut_pocket=False):
+    """ Generates a shape for a cutout to fit the given screw and its lock nut
+    Includes blinding layer for the nut pocket if it is enabled in parameters.
+    The nut sits on Z=0 plane, screw hole extends to infinity.
+    If exact_nut_pocket is False, the nut pocket hole extends to Z < 0 half a bit.
+    (to avoid numerical problems :-/) """
+    cutout = cylinder(d=screw.diameter, h=float("inf"))
+    nut_hex = regular_polygon2d(n=6, across_flats=screw.lock_nut.s)
+    if exact_nut_pocket:
+        cutout += nut_hex.extruded(screw.lock_nut.height, symmetrical=False)
+    else:
+        cutout += nut_hex.extruded(2 * screw.lock_nut.height)
+    if parameters.overhang_hole_blinding:
+        cutout -= cylinder(d=screw.lock_nut.s,
+                           h=parameters.overhang_hole_blinding,
+                           symmetrical=False) \
+            .translated_z(screw.lock_nut.height)
+
+    return cutout
 
 def name_only_part(name, attributes=[]):
     return sphere() \
