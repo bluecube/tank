@@ -124,10 +124,8 @@ def inner_sprocket_generator(base,
 
 def outer_sprocket_generator(base,
                              crown_tolerance,
-                             center_screw_diameter,
+                             center_screw,
                              center_screw_wall,
-                             center_screw_head_diameter,
-                             center_screw_head_height,
 
                              wall_thickness):
     half = base
@@ -138,16 +136,16 @@ def outer_sprocket_generator(base,
     half -= polygon2d([
         (-10, -10),
         (-10, base.total_height + 10),
-        (center_screw_diameter / 2, base.total_height + 10),
-        (center_screw_diameter / 2, screw_head_height),
-        (center_screw_head_diameter / 2, screw_head_height),
-        (center_screw_head_diameter / 2, screw_head_height - center_screw_head_height),
-        (center_screw_head_diameter / 2 + screw_head_height - center_screw_head_height, 0)]) \
+        (center_screw.diameter / 2, base.total_height + 10),
+        (center_screw.diameter / 2, screw_head_height),
+        (center_screw.head_diameter / 2, screw_head_height),
+        (center_screw.head_diameter / 2, screw_head_height - center_screw.head_height),
+        (center_screw.head_diameter / 2 + screw_head_height - center_screw.head_height, 0)]) \
         .revolved() \
         .rotated_x(90)
 
     if parameters.overhang_hole_blinding:
-        half += cylinder(r=center_screw_diameter, h=parameters.overhang_hole_blinding, symmetrical=False) \
+        half += cylinder(r=center_screw.diameter, h=parameters.overhang_hole_blinding, symmetrical=False) \
             .translated_z(screw_head_height)
 
     half -= tools.crown_cutout(outer_diameter=2*base.mid_radius,
@@ -177,10 +175,8 @@ inner_sprocket = inner_sprocket_generator(base,
     .make_part("inner_drive_sprocket", ["3d_print"])
 outer_sprocket = outer_sprocket_generator(base,
                                           0.1, # Crown tolerance
-                                          vitamins.small_screw.diameter,
+                                          vitamins.long_screw,
                                           center_screw_wall_thickness,
-                                          vitamins.long_screw.head_diameter,
-                                          vitamins.long_screw.head_height,
 
                                           3 * parameters.extrusion_width) \
     .make_part("outer_drive_sprocket", ["3d_print"])
@@ -192,4 +188,4 @@ drive_sprocket_assembly = codecad.assembly("drive_sprocket_assembly",
 if __name__ == "__main__":
     print("pitch radius", pitch_radius)
 
-    codecad.commandline_render(drive_sprocket_assembly.rotated_x(180))
+    codecad.commandline_render(drive_sprocket_assembly)
