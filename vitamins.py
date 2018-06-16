@@ -3,27 +3,28 @@ from codecad.shapes import *
 import parameters
 import tools
 
-small_screw = tools.name_only_part("M3x25_socket_head_screw")
-small_screw.diameter = 3
-small_screw.length = 25
-small_screw.head_diameter = 5.5
-small_screw.head_height = 3
-small_screw.lock_nut = tools.name_only_part("M3_lock_nut")
-small_screw.lock_nut.height = 4
-small_screw.lock_nut.s = 5.5 # Nut size across the flats
+_m3_lock_nut = tools.name_only_part("M3_lock_nut")
+_m3_lock_nut.height = 4
+_m3_lock_nut.s = 5.5 # Nut size across the flats
 
-long_screw = tools.name_only_part("M3x35_socket_head_screw")
-long_screw.diameter = 3
-long_screw.length = 35
-long_screw.head_diameter = 5.5
-long_screw.head_height = 3
-long_screw.lock_nut = small_screw.lock_nut
+def _m3_screw(length):
+    ret = tools.name_only_part("M3x{}_socket_head_screw".format(length))
+    ret.diameter = 3
+    ret.length = length
+    ret.head_diameter = 5.5
+    ret.head_height = 3
+    ret.lock_nut = _m3_lock_nut
+    return ret
 
-large_screw = tools.name_only_part("M5x20_socket_head_screw")
-large_screw.diameter = 5
-large_screw.lock_nut = tools.name_only_part("M5_lock_nut")
-large_screw.lock_nut.height = 5
-large_screw.lock_nut.s = 8 # Nut size across the flats
+m3x25_screw = _m3_screw(25)
+m3x35_screw = _m3_screw(35)
+
+m5x20_screw = tools.name_only_part("M5x20_socket_head_screw")
+m5x20_screw.diameter = 5
+m5x20_screw.length = 20
+m5x20_screw.lock_nut = tools.name_only_part("M5_lock_nut")
+m5x20_screw.lock_nut.height = 5
+m5x20_screw.lock_nut.s = 8 # Nut size across the flats
 
 shoulder_screw = tools.name_only_part("M5_6x20_socket_head_shoulder_screw")
 shoulder_screw.diameter = 5
@@ -32,7 +33,7 @@ shoulder_screw.length = 29.5
 shoulder_screw.screw_length = 9.5
 shoulder_screw.head_diameter = 10
 shoulder_screw.head_height = 4.5
-shoulder_screw.lock_nut = large_screw.lock_nut
+shoulder_screw.lock_nut = m5x20_screw.lock_nut
 
 small_bearing = tools.name_only_part("683_ZZ_bearing")
 small_bearing.id = 3

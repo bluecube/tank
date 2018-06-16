@@ -21,7 +21,8 @@ spring_inversion_safety_distance = 4
 
 pivot_round_clearance = suspension.pivot_round_clearance
 
-wheel_screw = vitamins.long_screw # Screw used as an axle for the tensioner wheel
+wheel_screw = vitamins.m3x35_screw # Screw used as an axle for the tensioner wheel
+spring_screw = vitamins._m3_screw(16) # TODO: Decide on the correct screw to use here
 wheel_bearing = vitamins.small_bearing
 
 wheel_clearance = suspension.wheel_clearance
@@ -207,13 +208,13 @@ outer_wheel_half = wheel_generator(wheel_diameter, suspension.wheel_width,
                                    arm_length, vitamins.shoulder_screw.head_diameter, vitamins.shoulder_screw.head_height - wheel_clearance, wheel_clearance,
                                    False) \
     .make_part("outer_tensioner_wheel", ["3d_print"])
-arm_left = arm_generator(arm_thickness, arm_pivot_thickness, arm_width, 12,
+arm_left = arm_generator(arm_thickness, arm_pivot_thickness, arm_width, spring_screw.length - vitamins.spring.bottom_mount_thickness,
                          arm_length, spring_arm_length, spring_angle_offset,
                          inner_bearing_height + wheel_clearance, # cone height
                          wheel_diameter, wheel_clearance,
                          vitamins.shoulder_screw.diameter2 + pivot_round_clearance,
                          wheel_bearing, wheel_screw,
-                         vitamins.small_screw) \
+                         spring_screw) \
     .make_part("tensioner_arm_left", ["3d_print"])
 arm_right = arm_left.shape().mirrored_x().make_part("tensioner_arm_right", ["3d_print"])
 
@@ -259,8 +260,12 @@ def tensioner_generator(right, arm_angle = (arm_angle_back + arm_angle_front) / 
                                             spring_anchor_point.y),
                             wheel_screw,
                             wheel_screw.lock_nut,
+                            spring_screw,
+                            spring_screw.lock_nut,
                             vitamins.shoulder_screw,
-                            vitamins.shoulder_screw.lock_nut])
+                            vitamins.shoulder_screw.lock_nut,
+                            vitamins.m5x20_screw,
+                            vitamins.m5x20_screw.lock_nut])
 
     return asm
 

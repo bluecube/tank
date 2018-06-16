@@ -175,7 +175,7 @@ inner_sprocket = inner_sprocket_generator(base,
     .make_part("inner_drive_sprocket", ["3d_print"])
 outer_sprocket = outer_sprocket_generator(base,
                                           0.1, # Crown tolerance
-                                          vitamins.long_screw,
+                                          vitamins.m3x35_screw,
                                           center_screw_wall_thickness,
 
                                           3 * parameters.extrusion_width) \

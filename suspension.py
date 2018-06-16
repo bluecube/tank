@@ -20,7 +20,8 @@ wheel_clearance = 2
 pivot_flat_clearance = 0.15
 pivot_round_clearance = 0.1
 
-road_wheel_screw = vitamins.small_screw # Screw used as an axle for the road wheel
+road_wheel_screw = vitamins.m3x25_screw # Screw used as an axle for the road wheel
+spring_screw = vitamins.m3x25_screw # Screw used for mounting the spring to the arm
 
 wheel_diameter = 34
 wheel_width = road_wheel_screw.length + road_wheel_screw.head_height # Total width of the wheel pair
@@ -600,12 +601,14 @@ def suspension_generator(right, arm_angle = arm_neutral_angle, bogie_angle_fract
                                             spring_anchor_point.y),
                             road_wheel_screw,
                             road_wheel_screw.lock_nut,
-                            vitamins.large_screw,
-                            vitamins.large_screw.lock_nut,
+                            spring_screw,
+                            spring_screw.lock_nut,
                             vitamins.shoulder_screw,
                             vitamins.shoulder_screw,
                             vitamins.shoulder_screw.lock_nut,
                             vitamins.shoulder_screw.lock_nut,
+                            vitamins.m5x20_screw,
+                            vitamins.m5x20_screw.lock_nut,
                             ])
 
     return asm

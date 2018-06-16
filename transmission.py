@@ -67,17 +67,17 @@ gear_shaft2_spline = tools.spline(20)
 shaft2 = shaft2_generator(drive_sprocket.spline, gear_shaft2_spline, 0.05,
                          vitamins.large_bearing,
                          (drive_sprocket.base.total_height + drive_sprocket.base.cone_height) / 2,
-                         vitamins.long_screw.diameter,
-                         vitamins.long_screw.length - drive_sprocket.center_screw_wall_thickness,
-                         vitamins.long_screw.lock_nut.s,
-                         vitamins.long_screw.lock_nut.height) \
+                         vitamins.m3x35_screw.diameter,
+                         vitamins.m3x35_screw.length - drive_sprocket.center_screw_wall_thickness,
+                         vitamins.m3x35_screw.lock_nut.s,
+                         vitamins.m3x35_screw.lock_nut.height) \
     .make_part("transmission_shaft2", ["3d_print"])
 
 shaft2_assembly = codecad.assembly("shaft2_assembly",
                                    [drive_sprocket.drive_sprocket_assembly,
                                     shaft2.rotated_x(90).translated_y(shaft2.part.data.length),
-                                    vitamins.long_screw,
-                                    vitamins.long_screw.lock_nut])
+                                    vitamins.m3x35_screw,
+                                    vitamins.m3x35_screw.lock_nut])
 
 if __name__ == "__main__":
     ratio = 1
