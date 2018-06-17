@@ -10,6 +10,8 @@ import parameters
 import track
 import tools
 
+from parameters import wheel_clearance
+
 tooth_count = 11
 
 def pitch_radius_eq(r):
@@ -26,6 +28,9 @@ circumference = (track.segment_length + track.connector_length) * tooth_count
     # How much the track moves for one rotation of the drive sprocket
 center_screw_wall_thickness = 3
 to_suspension_pivot = 145 # TODO: Calculate this
+bearing = vitamins.large_bearing
+bearing_shoulder_height = 2
+bearing_housing_top_diameter = bearing.od + 2 * 4 * parameters.extrusion_width
 
 def base_generator(n,
                    pitch_radius,
@@ -166,12 +171,14 @@ base = base_generator(tooth_count,
                       track.connector_width, track.width,
                       track.guide_width, track.guide_height, track.guide_side_angle,
                       track.clearance)
-spline = tools.spline(vitamins.large_bearing.id)
+spline = tools.spline(bearing.id)
 
 inner_sprocket = inner_sprocket_generator(base,
                                           spline, 0.05,
                                           0.1, # Crown tolerance
-                                          vitamins.large_bearing.shoulder_size, 5, 40) \
+                                          bearing.shoulder_size,
+                                          bearing_shoulder_height + wheel_clearance,
+                                          bearing_housing_top_diameter + 2 * wheel_clearance) \
     .make_part("inner_drive_sprocket", ["3d_print"])
 outer_sprocket = outer_sprocket_generator(base,
                                           0.1, # Crown tolerance
