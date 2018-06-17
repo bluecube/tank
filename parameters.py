@@ -11,6 +11,8 @@ layer_height = 0.2
 thin_wall = 2 * extrusion_width
 thick_wall = 4 * extrusion_width
 
+wheel_clearance = 2 # Distance between wheel and other parts
+
 overhang_hole_blinding = layer_height
 overhang_spokes_width = 2 * extrusion_width
 overhang_spokes_height = overhang_hole_blinding

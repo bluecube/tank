@@ -13,6 +13,8 @@ import parameters
 import suspension
 import track
 
+from parameters import wheel_clearance
+
 wheel_diameter = 55
 wheel_base_y = 0 # Approximate y coordinate of the wheel center
 spring_anchor_y = 15
@@ -25,7 +27,6 @@ wheel_screw = vitamins.m3x35_screw # Screw used as an axle for the tensioner whe
 spring_screw = vitamins._m3_screw(16) # TODO: Decide on the correct screw to use here
 wheel_bearing = vitamins.small_bearing
 
-wheel_clearance = suspension.wheel_clearance
 arm_clearance = suspension.arm_clearance
 track_clearance = track.body_clearance
 

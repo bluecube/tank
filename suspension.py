@@ -11,12 +11,13 @@ import tools
 import vitamins
 import parameters
 
+from parameters import wheel_clearance
+
 bogie_count = 6 # Count of bogies on both sides of the vehicle
 
 suspension_spacing = 120
 
 arm_clearance = 1
-wheel_clearance = 2
 pivot_flat_clearance = 0.15
 pivot_round_clearance = 0.1
 
