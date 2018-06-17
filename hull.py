@@ -22,9 +22,9 @@ drive_sprocket_position = Vector(bogie_positions[-1].x + drive_sprocket.to_suspe
 def hull_generator(width,
                    tensioner_position, bogie_positions, drive_sprocket_position,
                    glacis_radius, front_angle, rear_angle,
-                   mount_safety_distance,
-
-                   ):
+                   base_thickness,
+                   corner_frame_size,
+                   mount_safety_distance):
     assert tensioner_position.x == 0
 
     mount_points = [tensioner_position] + bogie_positions + [drive_sprocket_position]
@@ -60,7 +60,15 @@ def hull_generator(width,
         .extruded(width) \
         .rotated_x(90)
 
-    half_hull = half_hull.shell(3) & half_space().rotated_x(-90).translated_z(height)
+    half_hull = half_hull.shell(base_thickness) & half_space().rotated_x(-90).translated_z(height)
+    side_profile = side_profile & half_plane().rotated(180).translated_y(height)
+
+    half_hull += (side_profile & half_plane().rotated(180).translated_y(height + base_thickness)) \
+        .offset(-corner_frame_size / 2 - base_thickness / 2) \
+        .shell(corner_frame_size + base_thickness) \
+        .extruded(base_thickness + corner_frame_size, symmetrical=False) \
+        .rotated_x(90) \
+        .translated_y(width / 2)
 
     half_hull += union([cylinder(r=mount_safety_distance, h=10, symmetrical=False)
                             .rotated_x(-90)
@@ -72,9 +80,12 @@ def hull_generator(width,
     return hull
 
 
-hull = hull_generator(180,
+hull = hull_generator(180, # Width
                       tensioner_position, bogie_positions, drive_sprocket_position,
-                      80, 45, 15,
+                      120, # Glacis radius
+                      60, 15, # Front and rear angle
+                      4, # Base thickness
+                      5, # Frame size
                       15)
 
 if __name__ == "__main__":
@@ -85,7 +96,7 @@ if __name__ == "__main__":
     p("bogie_positions")
     p("drive_sprocket_position")
 
-    codecad.commandline_render(hull)
+    codecad.commandline_render(hull.rotated_x(00))
 
 import sys
 sys.exit()
