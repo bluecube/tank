@@ -2,6 +2,7 @@ import math
 
 import codecad
 from codecad.shapes import *
+from codecad.util import Vector
 
 import parameters
 import tools
@@ -9,28 +10,86 @@ import tensioner
 import suspension
 import drive_sprocket
 
-tensioner_x = 0
-bogie_x = [i * suspension.suspension_spacing + tensioner.to_suspension_pivot
-           for i in range(suspension.bogie_count // 2)]
-drive_sprocket_x = bogie_x[-1] + drive_sprocket.to_suspension_pivot
+suspension_pivot_y = 25
+tensioner_position = tensioner.pivot_position + Vector(0, suspension_pivot_y)
+bogie_positions = [Vector(i * suspension.suspension_spacing + tensioner.to_suspension_pivot,
+                          suspension_pivot_y)
+                   #for i in range(1)]
+                   for i in range(suspension.bogie_count // 2)]
+drive_sprocket_position = Vector(bogie_positions[-1].x + drive_sprocket.to_suspension_pivot,
+                                 suspension_pivot_y)
 
-def hull_generator(tensioner_position, bogie_positions, drive_sprocket_position, height, front_angle, rear_angle):
-    pass
+def hull_generator(width,
+                   tensioner_position, bogie_positions, drive_sprocket_position,
+                   glacis_radius, front_angle, rear_angle,
+                   mount_safety_distance,
+
+                   ):
+    assert tensioner_position.x == 0
+
+    mount_points = [tensioner_position] + bogie_positions + [drive_sprocket_position]
+    height = max(point.y for point in mount_points) + mount_safety_distance
+
+    half_hull = box(mount_points[-1].x, width, 2 * height) \
+        .translated_z(height) \
+
+    def extension(mount_safety_distance, y, angle):
+        return (mount_safety_distance - y * math.sin(math.radians(angle))) / math.cos(math.radians(angle))
+
+    front_ext = extension(mount_safety_distance, tensioner_position.y, front_angle)
+    front_ext_top = front_ext + math.tan(math.radians(front_angle)) * height
+    back_ext = extension(mount_safety_distance, drive_sprocket_position.y, rear_angle)
+    back_ext_top = back_ext + math.tan(math.radians(rear_angle)) * height
+
+    radius_tmp = glacis_radius / math.tan(math.radians(front_angle / 2 + 45))
+    print(radius_tmp)
+
+    side_profile = polygon2d([
+        (tensioner_position.x - front_ext + radius_tmp, 0),
+        (tensioner_position.x - front_ext - math.sin(math.radians(front_angle)) * radius_tmp,
+         math.cos(math.radians(front_angle)) * radius_tmp),
+        (tensioner_position.x - front_ext_top, height),
+        (tensioner_position.x - front_ext_top, 2 * height),
+        (drive_sprocket_position.x + back_ext_top, 2 * height),
+        (drive_sprocket_position.x + back_ext_top, height),
+        (drive_sprocket_position.x + back_ext, 0),
+        ])
+    side_profile += circle(r=glacis_radius).translated(tensioner_position.x - front_ext + radius_tmp, glacis_radius)
+
+    half_hull = side_profile \
+        .extruded(width) \
+        .rotated_x(90)
+
+    half_hull = half_hull.shell(3) & half_space().rotated_x(-90).translated_z(height)
+
+    half_hull += union([cylinder(r=mount_safety_distance, h=10, symmetrical=False)
+                            .rotated_x(-90)
+                            .translated(mp.x, width / 2, mp.y)
+                        for mp in mount_points])
+
+    hull = half_hull.symmetrical_y()
+
+    return hull
 
 
+hull = hull_generator(180,
+                      tensioner_position, bogie_positions, drive_sprocket_position,
+                      80, 45, 15,
+                      15)
 
 if __name__ == "__main__":
     def p(name, f=lambda x: x):
         print(name, f(globals()[name]))
 
-    p("tensioner_x")
-    p("bogie_x")
-    p("drive_sprocket_x")
+    p("tensioner_position")
+    p("bogie_positions")
+    p("drive_sprocket_position")
+
+    codecad.commandline_render(hull)
 
 import sys
 sys.exit()
 
-suspension_pivot_z = 20
 thin_wall = 5 * parameters.extrusion_width
 
 # Depth of the shoulder screw shaft in the side panel, including the spacing knob
