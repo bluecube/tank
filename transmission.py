@@ -8,7 +8,7 @@ import parameters
 import tools
 import drive_sprocket
 
-transmission_steps = [(17, 39), (17, 39)]
+transmission_steps = [(14, 39), (14, 39)]
     # Tooth counts of the transmission steps
 
 motor_max_rpm = 930 * 11.6 # rpm, motor Kv * motor voltage
