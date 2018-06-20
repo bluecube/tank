@@ -8,13 +8,15 @@ import parameters
 import tools
 import drive_sprocket
 
-transmission_steps = [(14, 39), (14, 39)]
+transmission_steps = [(13, 36), (13, 36)]
     # Tooth counts of the transmission steps
 
 motor_max_rpm = 930 * 11.6 # rpm, motor Kv * motor voltage
 
 gear_tip_clearance = 1 # mm, distance between gear OD and neighboring geometry
 module = 1.5
+
+final_drive_gear_radius = module * transmission_steps[-1][-1] / 2
 
 def shaft2_generator(sprocket_spline, gear_spline, spline_tolerance,
                      sprocket_bearing,

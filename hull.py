@@ -9,26 +9,43 @@ import tools
 import tensioner
 import suspension
 import drive_sprocket
+import track
+import transmission
 
-suspension_pivot_y = 25
+suspension_pivot_y = 30
 tensioner_position = tensioner.pivot_position + Vector(0, suspension_pivot_y)
 bogie_positions = [Vector(i * suspension.suspension_spacing + tensioner.to_suspension_pivot,
                           suspension_pivot_y)
-                   #for i in range(1)]
-                   for i in range(suspension.bogie_count // 2)]
+                   for i in range(1)]
+                   #for i in range(suspension.bogie_count // 2)]
 drive_sprocket_position = Vector(bogie_positions[-1].x + drive_sprocket.to_suspension_pivot,
                                  suspension_pivot_y)
 
+track_clearance = 5 # Distance between track and hull
+
 def hull_generator(width,
+                   track_center, # Distance between hull side and track centerline
                    tensioner_position, bogie_positions, drive_sprocket_position,
                    glacis_radius, front_angle, rear_angle,
                    base_thickness,
                    corner_frame_size,
+
+                   drive_sprocket_bearing,
+                   drive_sprocket_bearing_shoulder_height,
+                   drive_sprocket_bearing_housing_top_diameter,
+                   drive_sprocket_bearing_track_offset, # Distance between track centerline and outer face of drive sprocket bearing
+                   drive_sprocket_gear_clearance_radius,
+
                    mount_safety_distance):
     assert tensioner_position.x == 0
 
+    drive_sprocket_cone_height = track_center - drive_sprocket_bearing_track_offset + drive_sprocket_bearing_shoulder_height
+    drive_sprocket_bearing_housing_lower_diameter = drive_sprocket_bearing_housing_top_diameter + 2 * drive_sprocket_cone_height
+    drive_sprocket_clearance_radius = max(drive_sprocket_bearing_housing_lower_diameter / 2, drive_sprocket_gear_clearance_radius)
+
     mount_points = [tensioner_position] + bogie_positions + [drive_sprocket_position]
     height = max(point.y for point in mount_points) + mount_safety_distance
+    height = max(height, drive_sprocket_position.y + drive_sprocket_clearance_radius)
 
     half_hull = box(mount_points[-1].x, width, 2 * height) \
         .translated_z(height) \
@@ -36,13 +53,16 @@ def hull_generator(width,
     def extension(mount_safety_distance, y, angle):
         return (mount_safety_distance - y * math.sin(math.radians(angle))) / math.cos(math.radians(angle))
 
-    front_ext = extension(mount_safety_distance, tensioner_position.y, front_angle)
+    front_ext = extension(mount_safety_distance,
+                          tensioner_position.y,
+                          front_angle)
     front_ext_top = front_ext + math.tan(math.radians(front_angle)) * height
-    back_ext = extension(mount_safety_distance, drive_sprocket_position.y, rear_angle)
+    back_ext = extension(drive_sprocket_clearance_radius,
+                         drive_sprocket_position.y,
+                         rear_angle)
     back_ext_top = back_ext + math.tan(math.radians(rear_angle)) * height
 
     radius_tmp = glacis_radius / math.tan(math.radians(front_angle / 2 + 45))
-    print(radius_tmp)
 
     side_profile = polygon2d([
         (tensioner_position.x - front_ext + radius_tmp, 0),
@@ -60,20 +80,56 @@ def hull_generator(width,
         .extruded(width) \
         .rotated_x(90)
 
-    half_hull = half_hull.shell(base_thickness) & half_space().rotated_x(-90).translated_z(height)
+    # Shell the hull cut off the upper half
+    half_hull = half_hull.offset(-base_thickness / 2).shell(base_thickness) & half_space().rotated_x(-90).translated_z(height)
     side_profile = side_profile & half_plane().rotated(180).translated_y(height)
 
-    half_hull += (side_profile & half_plane().rotated(180).translated_y(height + base_thickness)) \
+    # The corner part of side panel frame
+    side_frame = side_profile \
         .offset(-corner_frame_size / 2 - base_thickness / 2) \
-        .shell(corner_frame_size + base_thickness) \
+        .shell(corner_frame_size + base_thickness)
+
+    # Add drive sprocket ribs to side frame
+    side_frame += (
+        rectangle(0.4 * drive_sprocket_bearing_housing_lower_diameter, drive_sprocket_bearing_housing_lower_diameter) \
+            .translated_y(drive_sprocket_bearing_housing_lower_diameter / 2) \
+            .rotated(-90 - rear_angle)
+        + rectangle(corner_frame_size, 2 * drive_sprocket_bearing_housing_lower_diameter)) \
+        .translated(drive_sprocket_position.x, drive_sprocket_position.y) \
+        & side_profile
+
+    # Add side panel fram to hull
+    half_hull += side_frame \
         .extruded(base_thickness + corner_frame_size, symmetrical=False) \
         .rotated_x(90) \
         .translated_y(width / 2)
 
+    # Drive sprocket bearing housing
+    half_hull += tools.cone(height=drive_sprocket_cone_height,
+                            upper_diameter=drive_sprocket_bearing_housing_top_diameter,
+                            lower_diameter=drive_sprocket_bearing_housing_lower_diameter,
+                            base_height=base_thickness + corner_frame_size) \
+        .rotated_x(-90) \
+        .translated(drive_sprocket_position.x, width / 2 - base_thickness - corner_frame_size, drive_sprocket_position.y)
+    half_hull -= polygon2d([
+        (-5, 2 * drive_sprocket_cone_height),
+        (drive_sprocket_bearing.od / 2 - drive_sprocket_bearing.shoulder_size, 2 * drive_sprocket_cone_height),
+        (drive_sprocket_bearing.od / 2 - drive_sprocket_bearing.shoulder_size, drive_sprocket_cone_height + base_thickness - drive_sprocket_bearing_shoulder_height),
+        (drive_sprocket_bearing.od / 2,  drive_sprocket_cone_height + base_thickness - drive_sprocket_bearing_shoulder_height),
+        (drive_sprocket_bearing.od / 2,  drive_sprocket_cone_height + base_thickness - drive_sprocket_bearing_shoulder_height - drive_sprocket_bearing.thickness),
+        #(drive_sprocket_bearing.od / 2 + drive_sprocket_cone_height + base_thickness - drive_sprocket_bearing_shoulder_height - drive_sprocket_bearing.thickness, 0),
+        (drive_sprocket_bearing.od / 2 + drive_sprocket_cone_height + base_thickness - drive_sprocket_bearing_shoulder_height - drive_sprocket_bearing.thickness + drive_sprocket_cone_height, -drive_sprocket_cone_height),
+        (-5, -drive_sprocket_cone_height),
+        ]) \
+        .revolved() \
+        .translated(drive_sprocket_position.x, width / 2 - base_thickness, drive_sprocket_position.y)
+
+
+    # Placeholder mount point cylinders
     half_hull += union([cylinder(r=mount_safety_distance, h=10, symmetrical=False)
                             .rotated_x(-90)
                             .translated(mp.x, width / 2, mp.y)
-                        for mp in mount_points])
+                        for mp in mount_points[:-1]])
 
     hull = half_hull.symmetrical_y()
 
@@ -81,11 +137,20 @@ def hull_generator(width,
 
 
 hull = hull_generator(180, # Width
+                      track.width / 2 + track_clearance,
                       tensioner_position, bogie_positions, drive_sprocket_position,
                       120, # Glacis radius
                       60, 15, # Front and rear angle
-                      4, # Base thickness
+                      4 * parameters.extrusion_width, # Base thickness
                       5, # Frame size
+
+                      drive_sprocket.bearing,
+                      drive_sprocket.bearing_shoulder_height,
+                      drive_sprocket.bearing_housing_top_diameter,
+                      track.width / 2,
+                      transmission.final_drive_gear_radius + transmission.gear_tip_clearance,
+
+
                       15)
 
 if __name__ == "__main__":
@@ -96,7 +161,7 @@ if __name__ == "__main__":
     p("bogie_positions")
     p("drive_sprocket_position")
 
-    codecad.commandline_render(hull.rotated_x(00))
+    codecad.commandline_render((hull.shape() & half_space()).rotated_x(00))
 
 import sys
 sys.exit()

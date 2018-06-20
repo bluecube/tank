@@ -29,7 +29,7 @@ circumference = (track.segment_length + track.connector_length) * tooth_count
 center_screw_wall_thickness = 3
 to_suspension_pivot = 145 # TODO: Calculate this
 bearing = vitamins.large_bearing
-bearing_shoulder_height = 2
+bearing_shoulder_height = parameters.extrusion_width * 6
 bearing_housing_top_diameter = bearing.od + 2 * 4 * parameters.extrusion_width
 
 def base_generator(n,
