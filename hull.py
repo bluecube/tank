@@ -29,6 +29,7 @@ def hull_generator(width,
                    glacis_radius, front_angle, rear_angle,
                    base_thickness,
                    corner_frame_size,
+                   skid_width, skid_height,
 
                    drive_sprocket_bearing,
                    drive_sprocket_bearing_shoulder_height,
@@ -38,6 +39,13 @@ def hull_generator(width,
 
                    mount_safety_distance):
     assert tensioner_position.x == 0
+
+    sin_rear = math.sin(math.radians(rear_angle))
+    cos_rear = math.cos(math.radians(rear_angle))
+    tan_rear = math.tan(math.radians(rear_angle))
+    sin_front = math.sin(math.radians(front_angle))
+    cos_front = math.cos(math.radians(front_angle))
+    tan_front = math.tan(math.radians(front_angle))
 
     drive_sprocket_cone_height = track_center - drive_sprocket_bearing_track_offset + drive_sprocket_bearing_shoulder_height
     drive_sprocket_bearing_housing_lower_diameter = drive_sprocket_bearing_housing_top_diameter + 2 * drive_sprocket_cone_height
@@ -56,18 +64,18 @@ def hull_generator(width,
     front_ext = extension(mount_safety_distance,
                           tensioner_position.y,
                           front_angle)
-    front_ext_top = front_ext + math.tan(math.radians(front_angle)) * height
+    front_ext_top = front_ext + tan_front * height
     back_ext = extension(drive_sprocket_clearance_radius,
                          drive_sprocket_position.y,
                          rear_angle)
-    back_ext_top = back_ext + math.tan(math.radians(rear_angle)) * height
+    back_ext_top = back_ext + tan_rear * height
 
     radius_tmp = glacis_radius / math.tan(math.radians(front_angle / 2 + 45))
 
     side_profile = polygon2d([
         (tensioner_position.x - front_ext + radius_tmp, 0),
-        (tensioner_position.x - front_ext - math.sin(math.radians(front_angle)) * radius_tmp,
-         math.cos(math.radians(front_angle)) * radius_tmp),
+        (tensioner_position.x - front_ext - sin_front * radius_tmp,
+         cos_front * radius_tmp),
         (tensioner_position.x - front_ext_top, height),
         (tensioner_position.x - front_ext_top, 2 * height),
         (drive_sprocket_position.x + back_ext_top, 2 * height),
@@ -80,7 +88,7 @@ def hull_generator(width,
         .extruded(width) \
         .rotated_x(90)
 
-    # Shell the hull cut off the upper half
+    # Shell the hull and cut off the upper half
     half_hull = half_hull.offset(-base_thickness / 2).shell(base_thickness) & half_space().rotated_x(-90).translated_z(height)
     side_profile = side_profile & half_plane().rotated(180).translated_y(height)
 
@@ -88,6 +96,10 @@ def hull_generator(width,
     side_frame = side_profile \
         .offset(-corner_frame_size / 2 - base_thickness / 2) \
         .shell(corner_frame_size + base_thickness)
+
+    # Members of the frame going across the hull
+    #frame_across = polygon2d([
+    #    (, height - corner_frame_size)
 
     # Add drive sprocket ribs to side frame
     side_frame += (
@@ -98,19 +110,37 @@ def hull_generator(width,
         .translated(drive_sprocket_position.x, drive_sprocket_position.y) \
         & side_profile
 
-    # Add side panel fram to hull
+    # Add side panel frame to hull
     half_hull += side_frame \
         .extruded(base_thickness + corner_frame_size, symmetrical=False) \
         .rotated_x(90) \
         .translated_y(width / 2)
 
-    # Drive sprocket bearing housing
+    # Add skids to the hull
+    skid_base = side_profile \
+        .offset((skid_height - base_thickness) / 2) \
+        .shell(base_thickness + skid_height)
+    skid_base &= polygon2d([
+        (tensioner_position.x - front_ext_top, height),
+        #(drive_sprocket_position.x + back_ext, skid_height + base_thickness),
+        (drive_sprocket_position.x + back_ext, 0),
+        (tensioner_position.x - front_ext_top, -(drive_sprocket_position.x + back_ext) / tan_rear)
+        ])
+    skid = skid_base \
+        .extruded(skid_width) \
+        .rotated_x(90)
+    half_hull += skid.translated_y(width / 2 - skid_width / 2)
+    half_hull += skid.translated_y((width - skid_width) / 6)
+
+    # Drive sprocket bearing housing cone
     half_hull += tools.cone(height=drive_sprocket_cone_height,
                             upper_diameter=drive_sprocket_bearing_housing_top_diameter,
                             lower_diameter=drive_sprocket_bearing_housing_lower_diameter,
                             base_height=base_thickness + corner_frame_size) \
         .rotated_x(-90) \
         .translated(drive_sprocket_position.x, width / 2 - base_thickness - corner_frame_size, drive_sprocket_position.y)
+
+    # Drive sprocket bearing housing cutout
     half_hull -= polygon2d([
         (-5, 2 * drive_sprocket_cone_height),
         (drive_sprocket_bearing.od / 2 - drive_sprocket_bearing.shoulder_size, 2 * drive_sprocket_cone_height),
@@ -133,7 +163,7 @@ def hull_generator(width,
 
     hull = half_hull.symmetrical_y()
 
-    return hull
+    return hull.rotated_y(90 - rear_angle)
 
 
 hull = hull_generator(180, # Width
@@ -143,6 +173,7 @@ hull = hull_generator(180, # Width
                       60, 15, # Front and rear angle
                       4 * parameters.extrusion_width, # Base thickness
                       5, # Frame size
+                      10, 2, # Skid width, skid height
 
                       drive_sprocket.bearing,
                       drive_sprocket.bearing_shoulder_height,
@@ -151,7 +182,9 @@ hull = hull_generator(180, # Width
                       transmission.final_drive_gear_radius + transmission.gear_tip_clearance,
 
 
-                      15)
+                      15) \
+    .make_part("hull", ["3d_print"])# \
+    #.rotated_y(-90 + 15)
 
 if __name__ == "__main__":
     def p(name, f=lambda x: x):
@@ -161,7 +194,7 @@ if __name__ == "__main__":
     p("bogie_positions")
     p("drive_sprocket_position")
 
-    codecad.commandline_render((hull.shape() & half_space()).rotated_x(00))
+    codecad.commandline_render((hull.shape() & half_space()))
 
 import sys
 sys.exit()
