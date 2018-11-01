@@ -11,6 +11,8 @@ layer_height = 0.2
 thin_wall = 2 * extrusion_width
 thick_wall = 4 * extrusion_width
 
+max_overhang_angle = 45 # Maximal angle of (large) overhanging surfaces
+
 wheel_clearance = 2 # Distance between wheel and other parts
 
 overhang_hole_blinding = layer_height
