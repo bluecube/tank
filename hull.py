@@ -7,6 +7,7 @@ import parametric
 
 import parameters
 import tools
+import vitamins
 import tensioner
 import suspension
 import drive_sprocket
@@ -17,8 +18,8 @@ suspension_pivot_y = 30
 tensioner_position = tensioner.pivot_position + Vector(0, suspension_pivot_y)
 bogie_positions = [Vector(i * suspension.suspension_spacing + tensioner.to_suspension_pivot,
                           suspension_pivot_y)
-                   for i in range(1)]
-                   #for i in range(suspension.bogie_count // 2)]
+                   #for i in range(1)]
+                   for i in range(suspension.bogie_count // 2)]
 drive_sprocket_position = Vector(bogie_positions[-1].x + drive_sprocket.to_suspension_pivot,
                                  suspension_pivot_y)
 
@@ -72,6 +73,15 @@ def hull_generator(width,
                    drive_sprocket_bearing_track_offset, # Distance between track centerline and outer face of drive sprocket bearing
                    drive_sprocket_gear_clearance_radius,
 
+                   suspension_pivot_screw,
+                   suspension_pivot_od,
+                   suspension_pivot_height,
+                   suspension_spring_anchor_screw,
+                   suspension_spring_anchor_od,
+                   suspension_spring_anchor_offset,
+                   suspension_spring_anchor_height,
+
+                   wall_thickness,
                    mount_safety_distance,
                    max_overhang_angle):
     assert tensioner_position.x == 0
@@ -80,6 +90,8 @@ def hull_generator(width,
     max_angle = max_overhang_angle + rear_angle # Maximal angle measured from hull floor that can be printed with acceptable overhangs (90° is up, 0° is forward)
     assert 90 - front_angle <= max_angle, "Front of the hull would not be printable because the front angle causes too much overhang"
 
+    assert suspension_pivot_od >= suspension_pivot_screw.diameter2 + 2 * wall_thickness
+    assert suspension_spring_anchor_od >= suspension_spring_anchor_screw.diameter + 2 * wall_thickness
 
     sin_rear = math.sin(math.radians(rear_angle))
     cos_rear = math.cos(math.radians(rear_angle))
@@ -137,14 +149,12 @@ def hull_generator(width,
     side_frame = side_profile_extended \
         .offset(-corner_frame_size / 2 - base_thickness / 2) \
         .shell(corner_frame_size + base_thickness)
-    side_frame = side_frame & side_profile
 
     # Members of the frame going across the hull
     cross_frame = top_back_cross_frame_member(rear_angle, corner_frame_size, base_thickness) \
         .translated(drive_sprocket_position.x + back_ext_top, height)
     cross_frame += rectangle(2 * (corner_frame_size + base_thickness), 2 * (corner_frame_size + base_thickness)) \
-        .translated(drive_sprocket_position.x + back_ext - base_thickness * (sin_rear - 1), 0) \
-        & side_frame
+        .translated(drive_sprocket_position.x + back_ext - base_thickness * (sin_rear - 1), 0)
     tmp_polygon = top_back_cross_frame_member(front_angle, corner_frame_size, base_thickness) # Reusing the top back frame polygon, because the structure is the same, even though the final shape is not
     cross_frame += half_plane() \
         .rotated(180 - max_angle) \
@@ -155,16 +165,33 @@ def hull_generator(width,
                               ]) \
         .scaled(2 * glacis_radius) \
         .translated(glacis_radius_center_x - 10, glacis_radius_center_y - 60)
-    cross_frame &= side_frame # Avoid spilling the frame outside and inside of the tank
+        # TODO: Calculate the lower front rib more precisely using constraints
+
+    # Add suspension mount point cross frames
+    cross_frame += union(rectangle(corner_frame_size, corner_frame_size + base_thickness) \
+                            .translated_x(mp.x) \
+                            .translated_y((corner_frame_size + base_thickness) / 2) for mp in bogie_positions)
+
+    cross_frame &= side_frame & side_profile # Avoid spilling the frame outside and inside of the tank
 
     # Add drive sprocket ribs to side frame
     side_frame += (
-        rectangle(0.4 * drive_sprocket_bearing_housing_lower_diameter, drive_sprocket_bearing_housing_lower_diameter) \
+        rectangle(4 * corner_frame_size, drive_sprocket_bearing_housing_lower_diameter) \
             .translated_y(drive_sprocket_bearing_housing_lower_diameter / 2) \
             .rotated(-90 - rear_angle)
         + rectangle(corner_frame_size, 2 * drive_sprocket_bearing_housing_lower_diameter)) \
         .translated(drive_sprocket_position.x, drive_sprocket_position.y) \
         & side_profile
+
+    # Add suspension mount ribs to the side frame
+    suspension_ribs = rectangle(corner_frame_size, drive_sprocket_position.x) \
+        .rotated(-75) \
+        .translated(suspension_spring_anchor_offset.x,
+                    suspension_spring_anchor_offset.y)
+    suspension_ribs += rectangle(corner_frame_size, 2 * height)
+    side_frame += union(suspension_ribs.translated(mp.x, mp.y) for mp in bogie_positions)
+
+    side_frame &= side_profile
 
     # Add side panel frame to hull
     half_hull += side_frame \
@@ -214,11 +241,29 @@ def hull_generator(width,
         .translated(drive_sprocket_position.x, width / 2 - base_thickness, drive_sprocket_position.y)
 
 
+    suspension_mount = tools.cone(upper_diameter=suspension_pivot_od,
+                                  lower_diameter=suspension_pivot_od + 2 * suspension_pivot_height,
+                                  height=suspension_pivot_height,
+                                  base_height=base_thickness + corner_frame_size) \
+        .rotated_x(-90)
+    suspension_mount += tools.cone(upper_diameter=suspension_spring_anchor_od,
+                                   lower_diameter=suspension_spring_anchor_od + 2 * suspension_spring_anchor_height,
+                                   height=suspension_spring_anchor_height,
+                                   base_height=base_thickness + corner_frame_size) \
+        .rotated_x(-90) \
+        .translated(suspension_spring_anchor_offset.x,
+                    0,
+                    suspension_spring_anchor_offset.y)
+
+    half_hull += union([suspension_mount.translated(mp.x, width / 2 - base_thickness - corner_frame_size, mp.y) for mp in bogie_positions])
+
+
+
     # Placeholder mount point cylinders
     half_hull += union([cylinder(r=mount_safety_distance, h=10, symmetrical=False)
                             .rotated_x(-90)
                             .translated(mp.x, width / 2, mp.y)
-                        for mp in mount_points[:-1]])
+                        for mp in mount_points[:1]])
 
     hull = half_hull.symmetrical_y()
 
@@ -233,7 +278,7 @@ hull = hull_generator(180, # Width
                       45, hull_rear_angle, # Front and rear angle
                       4 * parameters.extrusion_width, # Base thickness
                       5, # Frame size
-                      10, 2, # Skid width, skid height
+                      10, 2.5, # Skid width, skid height
 
                       drive_sprocket.bearing,
                       drive_sprocket.bearing_shoulder_height,
@@ -241,6 +286,15 @@ hull = hull_generator(180, # Width
                       track.width / 2,
                       transmission.final_drive_gear_radius + transmission.gear_tip_clearance,
 
+                      vitamins.shoulder_screw,
+                      suspension.arm_pivot_thickness,
+                      10,
+                      suspension.spring_screw,
+                      suspension.arm_thickness,
+                      suspension.spring_anchor_point,
+                      5,
+
+                      5 * parameters.extrusion_width,
                       15,
                       parameters.max_overhang_angle) \
     .make_part("hull", ["3d_print"]) \
@@ -255,6 +309,7 @@ if __name__ == "__main__":
     p("drive_sprocket_position")
 
     codecad.commandline_render((hull.shape() & half_space()))
+    #codecad.commandline_render(codecad.assembly("hull_assembly", [hull]))
 
 #thin_wall = 5 * parameters.extrusion_width
 #
