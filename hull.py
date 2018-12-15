@@ -51,12 +51,29 @@ def top_back_cross_frame_member(angle, size, wall_thickness):
     return polygon2d(pl)
 
 
-def bottom_front_cross_frame_member(max_angle, front_angle, radius, size, wall_thickness):
-    """ Return a 2D shape with the profile of the frame member going across the tank on the bottom front side """
-    pl = parametric.objects.Polyline([(0, 0),
-                                      (0, -2 * radius),
-                                      (-radius, -2*radius)])
-    return None  # TODO!
+def suspension_cross_frame_member(max_angle, suspension_height,
+                                  corner_frame_size, base_thickness,
+                                  suspension_spring_anchor_offset):
+    """ Return a 2D shape with the profile of the frame member going across the tank on the bottom,
+    for every suspension mount point. """
+
+    center_x_pivot = (suspension_height - corner_frame_size - base_thickness) / codecad.math.tan(max_angle)
+    center_x_spring = suspension_spring_anchor_offset.x - (suspension_height + suspension_spring_anchor_offset.y - corner_frame_size - base_thickness) / codecad.math.tan(90 - max_angle)
+
+    width_pivot = corner_frame_size / codecad.math.tan(max_angle)
+    width_spring = corner_frame_size / codecad.math.tan(90 - max_angle)
+
+    min_x = min(center_x_pivot - width_pivot / 2,
+                center_x_spring - width_spring / 2)
+    max_x = max(center_x_pivot + width_pivot / 2,
+                center_x_spring + width_spring / 2)
+
+    mid_x = (min_x + max_x) / 2
+
+    return polygon2d_builder(max_x, corner_frame_size + base_thickness) \
+        .angle_dy(180 - max_angle, -corner_frame_size - base_thickness) \
+        .symmetrical_x(mid_x) \
+        .close()
 
 
 def hull_generator(width,
@@ -122,10 +139,14 @@ def hull_generator(width,
 
     radius_tmp = glacis_radius / math.tan(math.radians(front_angle / 2 + 45))
 
+    glacis_lower_tangent_x = tensioner_position.x - front_ext + radius_tmp
+    glacis_lower_tangent_y = 0
+    glacis_upper_tangent_x = tensioner_position.x - front_ext - sin_front * radius_tmp
+    glacis_upper_tangent_y = cos_front * radius_tmp
+
     side_profile = polygon2d([
-        (tensioner_position.x - front_ext + radius_tmp, 0),
-        (tensioner_position.x - front_ext - sin_front * radius_tmp,
-         cos_front * radius_tmp),
+        (glacis_lower_tangent_x, glacis_lower_tangent_y),
+        (glacis_upper_tangent_x, glacis_upper_tangent_y),
         (tensioner_position.x - front_ext_top, height),
         (tensioner_position.x - front_ext_top, 2 * height),
         (drive_sprocket_position.x + back_ext_top, 2 * height),
@@ -151,26 +172,35 @@ def hull_generator(width,
         .shell(corner_frame_size + base_thickness)
 
     # Members of the frame going across the hull
+    # Top back
     cross_frame = top_back_cross_frame_member(rear_angle, corner_frame_size, base_thickness) \
         .translated(drive_sprocket_position.x + back_ext_top, height)
+    # Bottom back
     cross_frame += rectangle(2 * (corner_frame_size + base_thickness), 2 * (corner_frame_size + base_thickness)) \
         .translated(drive_sprocket_position.x + back_ext - base_thickness * (sin_rear - 1), 0)
+    # Top front
     tmp_polygon = top_back_cross_frame_member(front_angle, corner_frame_size, base_thickness) # Reusing the top back frame polygon, because the structure is the same, even though the final shape is not
     cross_frame += half_plane() \
         .rotated(180 - max_angle) \
         .translated(tensioner_position.x - front_ext_top - tmp_polygon.points[2, 0], height - corner_frame_size)
-    cross_frame += polygon2d([(0, 0),
-                              (math.cos(math.radians(-max_angle)), math.sin(math.radians(-max_angle))),
-                              (math.cos(math.radians(90 + front_angle + max_angle)), math.sin(math.radians(90 + front_angle + max_angle))),
-                              ]) \
-        .scaled(2 * glacis_radius) \
-        .translated(glacis_radius_center_x - 10, glacis_radius_center_y - 60)
-        # TODO: Calculate the lower front rib more precisely using constraints
-
-    # Add suspension mount point cross frames
-    cross_frame += union(rectangle(corner_frame_size, corner_frame_size + base_thickness) \
-                            .translated_x(mp.x) \
-                            .translated_y((corner_frame_size + base_thickness) / 2) for mp in bogie_positions)
+    # Bottom front
+    cross_frame += polygon2d_builder(glacis_lower_tangent_x, glacis_lower_tangent_y) \
+        .angle_dy(180 - max_angle, corner_frame_size + base_thickness) \
+        .xy(glacis_upper_tangent_x, glacis_upper_tangent_y) \
+        .reversed_block() \
+            .angle(front_angle - 90 + max_angle, 2 * corner_frame_size) \
+        .close() \
+        .y(-10) \
+        .x(glacis_lower_tangent_x) \
+        .close()
+    # Cross frame members for suspension points
+    cross_frame += union(
+        suspension_cross_frame_member(
+            max_angle, mp.y,
+            corner_frame_size, base_thickness,
+            suspension_spring_anchor_offset
+        )
+        .translated_x(mp.x) for mp in bogie_positions)
 
     cross_frame &= side_frame & side_profile # Avoid spilling the frame outside and inside of the tank
 
@@ -180,15 +210,16 @@ def hull_generator(width,
             .translated_y(drive_sprocket_bearing_housing_lower_diameter / 2) \
             .rotated(-90 - rear_angle)
         + rectangle(corner_frame_size, 2 * drive_sprocket_bearing_housing_lower_diameter)) \
-        .translated(drive_sprocket_position.x, drive_sprocket_position.y) \
-        & side_profile
+        .translated(drive_sprocket_position.x, drive_sprocket_position.y)
 
     # Add suspension mount ribs to the side frame
-    suspension_ribs = rectangle(corner_frame_size, drive_sprocket_position.x) \
-        .rotated(-75) \
-        .translated(suspension_spring_anchor_offset.x,
-                    suspension_spring_anchor_offset.y)
-    suspension_ribs += rectangle(corner_frame_size, 2 * height)
+    #side_frame += rectangle(4 * drive_sprocket_position.x, corner_frame_size) \
+    #    .translated_y(drive_sprocket_position.y)
+    suspension_ribs = rectangle(corner_frame_size, 2 * height) \
+        .rotated(90 - max_angle)
+    suspension_ribs += rectangle(corner_frame_size, 2 * height) \
+        .rotated(-max_angle) \
+        .translated_x(suspension_spring_anchor_offset.x)
     side_frame += union(suspension_ribs.translated(mp.x, mp.y) for mp in bogie_positions)
 
     side_frame &= side_profile
