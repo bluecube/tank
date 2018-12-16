@@ -82,7 +82,7 @@ def hull_generator(width,
                    glacis_radius, front_angle, rear_angle,
                    base_thickness,
                    corner_frame_size,
-                   skid_width, skid_height,
+                   skid_width, skid_outer_height, skid_inner_height,
 
                    drive_sprocket_bearing,
                    drive_sprocket_bearing_shoulder_height,
@@ -236,13 +236,17 @@ def hull_generator(width,
 
     # Add skids to the hull
     skid_base = side_profile \
-        .offset((skid_height - base_thickness) / 2) \
-        .shell(base_thickness + skid_height)
-    skid_base &= polygon2d([
-        (tensioner_position.x - front_ext_top, height),
-        (drive_sprocket_position.x + back_ext, 0),
-        (tensioner_position.x - front_ext_top, -(drive_sprocket_position.x + back_ext) / tan_rear)
-        ])
+        .offset(skid_outer_height - (base_thickness + skid_outer_height + skid_inner_height) / 2) \
+        .shell(base_thickness + skid_outer_height + skid_inner_height)
+    skid_base &= polygon2d_builder(tensioner_position.x - front_ext_top, height) \
+        .angle_dy((front_angle - 90) / 2, -height / 2) \
+        .xy(drive_sprocket_position.x + back_ext, 0) \
+        .reversed_block() \
+            .angle_dy(135, height / 2) \
+        .close() \
+        .angle_dy(-90 - rear_angle, -2 * skid_outer_height) \
+        .x(tensioner_position.x - front_ext_top - 2 * skid_outer_height) \
+        .close()
     skid = skid_base \
         .extruded(skid_width) \
         .rotated_x(90)
@@ -307,9 +311,9 @@ hull = hull_generator(180, # Width
                       tensioner_position, bogie_positions, drive_sprocket_position,
                       80, # Glacis radius
                       45, hull_rear_angle, # Front and rear angle
-                      4 * parameters.extrusion_width, # Base thickness
-                      5, # Frame size
-                      10, 2.5, # Skid width, skid height
+                      3 * parameters.extrusion_width, # Base thickness
+                      3.5, # Frame size
+                      10, 2, 3.5, # Skid width, skid outer height, skid inner height
 
                       drive_sprocket.bearing,
                       drive_sprocket.bearing_shoulder_height,
